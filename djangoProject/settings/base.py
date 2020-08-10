@@ -101,6 +101,23 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# settings for cache
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': '',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'SOCKET_CONNECT_TIMEOUT': 5,
+            'SOCKET_TIMEOUT': 5,
+            "CONNECTION_POOL_KWARGS": {
+                "max_connections": 200,
+            },
+            "SERIALIZER": "django_redis.serializers.json.JSONSerializer",
+        },
+    },
+}
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/3.1/topics/i18n/
@@ -207,3 +224,4 @@ LOGGING = {
     }
 }
 
+MIGRATE_APPS = ['blog']
