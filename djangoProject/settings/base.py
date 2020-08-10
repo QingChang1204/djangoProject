@@ -9,7 +9,8 @@ https://docs.djangoproject.com/en/3.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.1/ref/settings/
 """
-
+import os
+import platform
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -37,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'blog'
 ]
 
 MIDDLEWARE = [
@@ -105,7 +107,9 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Shanghai'
+
+ENV = "base"
 
 USE_I18N = True
 
@@ -118,3 +122,88 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_URL = '/static/'
+
+level = 'DEBUG' if DEBUG else 'INFO'
+hostname = platform.node().split(".")[0]
+
+# Use a different address for Mac OS X
+# syslog_address = '/var/run/syslog/' if platform.system().lower(
+# ) == 'darwin' else 'log/'
+syslog_address = 'log/'
+if not os.path.exists(syslog_address):
+    os.mkdir(syslog_address)
+
+syslog_format = '%(asctime)s [service=Aliyun][%(name)s] %(levelname)s [{hostname}  %(process)d] ' \
+                '[%(pathname)s:%(lineno)d] - %(message)s'.format(hostname=hostname)
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'standard': {
+            'format': '%(asctime)s %(levelname)s %(process)d [%(name)s] %(pathname)s:%(lineno)d - %(message)s',
+        },
+        'syslog_format': {
+            'format': syslog_format
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': level,
+            'class': 'logging.StreamHandler',
+            'formatter': 'standard',
+            'stream': 'ext://sys.stdout',
+        },
+        'default': {
+            'level': level,
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': syslog_address + 'blog.log',
+            'formatter': 'syslog_format',
+            'maxBytes': 1024 * 1024 * 5,
+            'backupCount': 5,
+        },
+        'mail_admins': {
+            'level': 'ERROR',
+            'class': 'django.utils.log.AdminEmailHandler',
+            'include_html': True,
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'default'],
+            'propagate': True,
+            'level': 'INFO'
+        },
+        'requests': {
+            'handlers': ['console', 'default'],
+            'propagate': True,
+            'level': 'WARNING'
+        },
+        'urllib3': {
+            'handlers': ['console', 'default'],
+            'propagate': True,
+            'level': 'WARNING'
+        },
+        'django.request': {
+            'handlers': ['console', 'default'],
+            'propagate': True,
+            'level': 'ERROR'
+        },
+        'django_template': {
+            'handlers': ['console', 'default'],
+            'propagate': False,
+            'level': 'WARNING'
+        },
+        'django.db.backends': {
+            'handlers': ['console', 'default'],
+            'propagate': False,
+            'level': 'DEBUG',
+        },
+        '': {
+            'handlers': ['console', 'default'],
+            'level': 'DEBUG',
+            'propagate': False
+        },
+    }
+}
+
