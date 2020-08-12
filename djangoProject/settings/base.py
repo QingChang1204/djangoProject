@@ -225,3 +225,4 @@ LOGGING = {
 }
 
 MIGRATE_APPS = ['blog']
+AUTH_USER_MODEL = 'blog.BlogUser'
