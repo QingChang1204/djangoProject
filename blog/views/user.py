@@ -22,7 +22,16 @@ class UserViewSets(viewsets.ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         # 获得用户基本信息
-        return Response()
+        user = request.user
+        errcode.USER_INFO['data'] = {
+            "icon": user.icon,
+            "username": user.username,
+            "description": user.description,
+            "email": user.email,
+            "display_account": user.display_account,
+            "phone": user.phone
+        }
+        return Response(errcode.USER_INFO, 200)
 
     @action(detail=False,
             methods=['POST'],
