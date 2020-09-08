@@ -1,9 +1,9 @@
 from django.db import IntegrityError
-from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 import re
+from rest_framework.viewsets import GenericViewSet
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import RefreshToken
 import blog.errcode as errcode
@@ -11,7 +11,7 @@ from blog.models import BlogUser
 from blog.serializers import BlogUserSerializers
 
 
-class UserViewSets(viewsets.GenericViewSet):
+class UserViewSets(GenericViewSet):
     queryset = BlogUser.objects.all()
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
