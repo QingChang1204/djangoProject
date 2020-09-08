@@ -29,3 +29,27 @@ LOG_FAIL = {
     "data": {},
     "detail": "log in fail"
 }
+
+EXISTED_USER_NAME = {
+    "err_code": 1003,
+    "data": {},
+    "detail": " existed name "
+}
+
+USER_INFO = {
+    "err_code": 1004,
+    "data": {},
+    "detail": " user info "
+}
+
+EMAIL_FORMAT_ERROR = {
+    "err_code": 1005,
+    "data": {},
+    "detail": " err email "
+}
+
+TOKEN = {
+    "err_code": 1006,
+    "data": {},
+    "detail": " token info "
+}
