@@ -1,23 +1,13 @@
+import time
 from django.contrib.auth.base_user import AbstractBaseUser
 from django.contrib.auth.models import PermissionsMixin, UserManager
-from django.core import validators
+from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.core.mail import send_mail
 from django.db import models
 from django.utils import timezone
-
+import hashids
 
 # Create your models here.
-from django.utils.deconstruct import deconstructible
-
-
-@deconstructible
-class UnicodeUsernameValidator(validators.RegexValidator):
-    regex = r'^[\w.@+-]+\Z'
-    message = (
-        'Enter a valid username. This value may contain only letters, '
-        'numbers, and @/./+/-/_ characters.'
-    )
-    flags = 0
 
 
 class NewAbstractUser(AbstractBaseUser, PermissionsMixin):
@@ -65,7 +55,17 @@ class NewAbstractUser(AbstractBaseUser, PermissionsMixin):
 
 
 class BlogUser(NewAbstractUser):
-    display_account = models.CharField(max_length=12, null=False)
+    display_account = models.CharField(max_length=20, null=True)
+    icon = models.URLField(verbose_name="用户头像", null=True)
+    description = models.TextField(verbose_name="用户描述", null=True)
+    phone = models.CharField(verbose_name="手机号", null=True, unique=True, max_length=11)
 
     def __str__(self):
         return self.username
+
+    def save(self):
+        hasher = hashids.Hashids(salt=self.username)
+        self.display_account = hasher.encode(int(time.time()))
+        self.last_login = timezone.now()
+        self.set_password(self.password)
+        super(BlogUser, self).save()
