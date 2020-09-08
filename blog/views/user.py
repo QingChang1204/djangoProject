@@ -4,23 +4,22 @@ from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 import re
-
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import RefreshToken
-
 import blog.errcode as errcode
 from blog.models import BlogUser
 from blog.serializers import BlogUserSerializers
 
 
-class UserViewSets(viewsets.ModelViewSet):
+class UserViewSets(viewsets.GenericViewSet):
     queryset = BlogUser.objects.all()
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
     serializer_class = BlogUserSerializers
     email_format = r'^[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+){0,4}@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+){0,4}$'
 
-    def list(self, request, *args, **kwargs):
+    @staticmethod
+    def list(request):
         # 获得用户基本信息
         user = request.user
         errcode.USER_INFO['data'] = {
@@ -85,12 +84,10 @@ class UserViewSets(viewsets.ModelViewSet):
     def log_in(self, request):
         # 用户登录接口
         try:
-            blog_user = self.queryset.get(
-                username=request.data['username']
-            )
+            blog_user = self.queryset.list()
             if blog_user.check_password(request.data['password']):
                 token = RefreshToken.for_user(
-                    self.queryset.get(username=request.data['username'])
+                    self.queryset.list()
                 )
                 errcode.TOKEN['data'] = {
                     'access_token': "Bearer " + str(token.access_token),
