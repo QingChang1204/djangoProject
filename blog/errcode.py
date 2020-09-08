@@ -53,3 +53,11 @@ TOKEN = {
     "data": {},
     "detail": " token info "
 }
+
+# 文章相关
+
+ARTICLE_INFO = {
+    "err_code": 2001,
+    "data": {},
+    "detail": " article info "
+}
