@@ -1,3 +1,4 @@
+from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 from blog.models import BlogUser, Article
 
@@ -24,17 +25,19 @@ class BlogUserSerializers(ModelSerializer):
 
 
 class ArticleSerializers(ModelSerializer):
-    # todo 用户的头像 姓名
+    icon = serializers.URLField(source='user.icon', read_only=True)
+    username = serializers.CharField(source='user.username', read_only=True)
+    display_account = serializers.CharField(source='user.display_account', read_only=True)
 
     class Meta:
         model = Article
         fields = [
-            'content', 'title', 'tag', 'datetime_created', 'category', 'datetime_update', 'user_id'
+            'content', 'title', 'tag', 'datetime_created', 'category', 'datetime_update', 'icon', 'username',
+            'display_account'
         ]
-        depth = 1
 
     def create(self, validated_data):
-        instance = self.Meta.model(**validated_data)
+        instance = self.Meta.model(**validated_data, user_id=self.context.get('user_id'))
         instance.save()
         return instance
 
