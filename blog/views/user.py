@@ -7,12 +7,12 @@ from rest_framework.viewsets import GenericViewSet
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import RefreshToken
 import blog.errcode as errcode
-from blog.models import BlogUser
+from blog.models import User
 from blog.serializers import BlogUserSerializers
 
 
 class UserViewSets(GenericViewSet):
-    queryset = BlogUser.objects.all()
+    queryset = User.objects.all()
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
     serializer_class = BlogUserSerializers
@@ -96,5 +96,5 @@ class UserViewSets(GenericViewSet):
                 return Response(errcode.TOKEN, 200)
             else:
                 return Response(errcode.PARAM_ERROR, 200)
-        except (KeyError, BlogUser.DoesNotExist):
+        except (KeyError, User.DoesNotExist):
             return Response(errcode.PARAM_ERROR, 200)

@@ -1,13 +1,13 @@
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
-from blog.models import BlogUser, Article
+from blog.models import User, Article
 
 
 class BlogUserSerializers(ModelSerializer):
     # 设计新的用户序列化器
 
     class Meta:
-        model = BlogUser
+        model = User
         fields = [
             'username', 'email', 'display_account', 'icon', 'description', 'password'
         ]

@@ -54,7 +54,7 @@ class NewAbstractUser(AbstractBaseUser, PermissionsMixin):
         send_mail(subject, message, from_email, [self.email], **kwargs)
 
 
-class BlogUser(NewAbstractUser):
+class User(NewAbstractUser):
     display_account = models.CharField(max_length=20, null=True)
     icon = models.URLField(verbose_name="用户头像", null=True)
     description = models.TextField(verbose_name="用户描述", null=True)
@@ -68,13 +68,13 @@ class BlogUser(NewAbstractUser):
         self.display_account = hasher.encode(int(time.time()))
         self.last_login = timezone.now()
         self.set_password(self.password)
-        super(BlogUser, self).save()
+        super(User, self).save()
 
 
 class Article(models.Model):
     content = models.TextField(verbose_name="内容")
     title = models.CharField(verbose_name="文章标题", max_length=150)
-    user = models.ForeignKey(BlogUser, db_constraint=False, on_delete=models.DO_NOTHING)
+    user = models.ForeignKey(User, db_constraint=False, on_delete=models.DO_NOTHING)
     tag = models.CharField(verbose_name="标签", max_length=30, null=True)
     datetime_created = models.DateTimeField(verbose_name="创建时间", auto_now_add=True)
     datetime_update = models.DateTimeField(verbose_name="修改时间", auto_now=True)
