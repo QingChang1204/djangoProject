@@ -67,7 +67,6 @@ class User(NewAbstractUser):
         hasher = hashids.Hashids(salt=self.username)
         self.display_account = hasher.encode(int(time.time()))
         self.last_login = timezone.now()
-        self.set_password(self.password)
         super(User, self).save()
 
 

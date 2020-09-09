@@ -6,7 +6,7 @@ import re
 from rest_framework.viewsets import GenericViewSet
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import RefreshToken
-import blog.errcode as errcode
+from blog.errcode import USER_INFO, EMAIL_FORMAT_ERROR, EXISTED_USER_NAME, TOKEN, PARAM_ERROR, SUCCESS
 from blog.models import User
 from blog.serializers import BlogUserSerializers
 
@@ -22,7 +22,7 @@ class UserViewSets(GenericViewSet):
     def list(request):
         # 获得用户基本信息
         user = request.user
-        errcode.USER_INFO['data'] = {
+        USER_INFO['data'] = {
             "icon": user.icon,
             "username": user.username,
             "description": user.description,
@@ -30,7 +30,7 @@ class UserViewSets(GenericViewSet):
             "display_account": user.display_account,
             "phone": user.phone
         }
-        return Response(errcode.USER_INFO, 200)
+        return Response(USER_INFO, 200)
 
     @action(detail=False,
             methods=['POST'],
@@ -40,20 +40,22 @@ class UserViewSets(GenericViewSet):
         # 用户注册接口
         try:
             if re.match(self.email_format, request.data['email']):
-                blog_user = self.get_serializer(data=request.data)
+                blog_user = self.get_serializer(data=request.data, context={
+                    "password": request.data.pop('password', None)
+                })
                 blog_user.is_valid(raise_exception=True)
                 blog_user = blog_user.save()
             else:
-                return Response(errcode.EMAIL_FORMAT_ERROR, 200)
+                return Response(EMAIL_FORMAT_ERROR, 200)
         except IntegrityError:
-            return Response(errcode.EXISTED_USER_NAME, 200)
+            return Response(EXISTED_USER_NAME, 200)
         else:
             token = RefreshToken.for_user(blog_user)
-            errcode.TOKEN['data'] = {
+            TOKEN['data'] = {
                 'access_token': "Bearer " + str(token.access_token),
                 'refresh': "Bearer " + str(token)
             }
-            return Response(errcode.TOKEN, 200)
+            return Response(TOKEN, 200)
 
     @action(detail=False,
             methods=['POST'],
@@ -64,18 +66,20 @@ class UserViewSets(GenericViewSet):
         try:
             request.data['display_account']
         except KeyError:
-            return Response(errcode.PARAM_ERROR, 200)
+            return Response(PARAM_ERROR, 200)
         try:
             if re.match(self.email_format, request.data['email']):
-                blog_user = self.get_serializer(request.user, data=request.data)
+                blog_user = self.get_serializer(request.user, data=request.data, context={
+                    "password": request.data.pop('password', None)
+                })
                 blog_user.is_valid(raise_exception=True)
                 blog_user.save()
             else:
-                return Response(errcode.EMAIL_FORMAT_ERROR, 200)
+                return Response(EMAIL_FORMAT_ERROR, 200)
         except IntegrityError:
-            return Response(errcode.EXISTED_USER_NAME, 200)
+            return Response(EXISTED_USER_NAME, 200)
         else:
-            return Response(errcode.SUCCESS, 200)
+            return Response(SUCCESS, 200)
 
     @action(detail=False,
             methods=['POST'],
@@ -89,12 +93,12 @@ class UserViewSets(GenericViewSet):
                 token = RefreshToken.for_user(
                     self.queryset.list()
                 )
-                errcode.TOKEN['data'] = {
+                TOKEN['data'] = {
                     'access_token': "Bearer " + str(token.access_token),
                     'refresh': "Bearer " + str(token)
                 }
-                return Response(errcode.TOKEN, 200)
+                return Response(TOKEN, 200)
             else:
-                return Response(errcode.PARAM_ERROR, 200)
+                return Response(PARAM_ERROR, 200)
         except (KeyError, User.DoesNotExist):
-            return Response(errcode.PARAM_ERROR, 200)
+            return Response(PARAM_ERROR, 200)

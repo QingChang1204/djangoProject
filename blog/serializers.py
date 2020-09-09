@@ -9,17 +9,20 @@ class BlogUserSerializers(ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'username', 'email', 'display_account', 'icon', 'description', 'password'
+            'username', 'email', 'display_account', 'icon', 'description'
         ]
 
     def create(self, validated_data):
         instance = self.Meta.model(**validated_data)
+        instance.password = instance.set_password(self.context.get('password'))
         instance.save()
         return instance
 
     def update(self, instance, validated_data):
         for k, v in validated_data.items():
             instance.__setattr__(k, v)
+        if self.context.get('password') is not None:
+            instance.password = instance.set_password(self.context.get('password'))
         instance.save()
         return instance
 
@@ -32,7 +35,7 @@ class ArticleSerializers(ModelSerializer):
     class Meta:
         model = Article
         fields = [
-            'content', 'title', 'tag', 'datetime_created', 'category', 'datetime_update', 'icon', 'username',
+            'id', 'content', 'title', 'tag', 'datetime_created', 'category', 'datetime_update', 'icon', 'username',
             'display_account'
         ]
 
