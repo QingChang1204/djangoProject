@@ -14,7 +14,7 @@ class BlogUserSerializers(ModelSerializer):
 
     def create(self, validated_data):
         instance = self.Meta.model(**validated_data)
-        instance.password = instance.set_password(self.context.get('password'))
+        instance.set_password(self.context.get('password'))
         instance.save()
         return instance
 
@@ -22,7 +22,7 @@ class BlogUserSerializers(ModelSerializer):
         for k, v in validated_data.items():
             instance.__setattr__(k, v)
         if self.context.get('password') is not None:
-            instance.password = instance.set_password(self.context.get('password'))
+            instance.set_password(self.context.get('password'))
         instance.save()
         return instance
 

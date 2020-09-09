@@ -18,18 +18,10 @@ class UserViewSets(GenericViewSet):
     serializer_class = BlogUserSerializers
     email_format = r'^[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+){0,4}@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+){0,4}$'
 
-    @staticmethod
-    def list(request):
+    def list(self, request):
         # 获得用户基本信息
-        user = request.user
-        USER_INFO['data'] = {
-            "icon": user.icon,
-            "username": user.username,
-            "description": user.description,
-            "email": user.email,
-            "display_account": user.display_account,
-            "phone": user.phone
-        }
+        serializer = self.serializer_class(instance=request.user)
+        USER_INFO['data'] = serializer.data
         return Response(USER_INFO, 200)
 
     @action(detail=False,
@@ -40,8 +32,8 @@ class UserViewSets(GenericViewSet):
         # 用户注册接口
         try:
             if re.match(self.email_format, request.data['email']):
-                blog_user = self.get_serializer(data=request.data, context={
-                    "password": request.data.pop('password', None)
+                blog_user = self.serializer_class(data=request.data, context={
+                    "password": request.data['password']
                 })
                 blog_user.is_valid(raise_exception=True)
                 blog_user = blog_user.save()
@@ -49,6 +41,8 @@ class UserViewSets(GenericViewSet):
                 return Response(EMAIL_FORMAT_ERROR, 200)
         except IntegrityError:
             return Response(EXISTED_USER_NAME, 200)
+        except KeyError:
+            return Response(PARAM_ERROR, 200)
         else:
             token = RefreshToken.for_user(blog_user)
             TOKEN['data'] = {
@@ -69,8 +63,8 @@ class UserViewSets(GenericViewSet):
             return Response(PARAM_ERROR, 200)
         try:
             if re.match(self.email_format, request.data['email']):
-                blog_user = self.get_serializer(request.user, data=request.data, context={
-                    "password": request.data.pop('password', None)
+                blog_user = self.serializer_class(request.user, data=request.data, context={
+                    "password": request.data['password']
                 })
                 blog_user.is_valid(raise_exception=True)
                 blog_user.save()
@@ -78,6 +72,8 @@ class UserViewSets(GenericViewSet):
                 return Response(EMAIL_FORMAT_ERROR, 200)
         except IntegrityError:
             return Response(EXISTED_USER_NAME, 200)
+        except KeyError:
+            return Response(PARAM_ERROR, 200)
         else:
             return Response(SUCCESS, 200)
 
@@ -88,10 +84,10 @@ class UserViewSets(GenericViewSet):
     def log_in(self, request):
         # 用户登录接口
         try:
-            blog_user = self.queryset.list()
+            blog_user = self.queryset.get(username=request.data['username'])
             if blog_user.check_password(request.data['password']):
                 token = RefreshToken.for_user(
-                    self.queryset.list()
+                    blog_user
                 )
                 TOKEN['data'] = {
                     'access_token': "Bearer " + str(token.access_token),
