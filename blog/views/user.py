@@ -32,9 +32,7 @@ class UserViewSets(GenericViewSet):
         # 用户注册接口
         try:
             if re.match(self.email_format, request.data['email']):
-                blog_user = self.serializer_class(data=request.data, context={
-                    "password": request.data['password']
-                })
+                blog_user = self.serializer_class(data=request.data)
                 blog_user.is_valid(raise_exception=True)
                 blog_user = blog_user.save()
             else:
@@ -58,14 +56,8 @@ class UserViewSets(GenericViewSet):
     def update_info(self, request):
         # 用户更新个人信息
         try:
-            request.data['display_account']
-        except KeyError:
-            return Response(PARAM_ERROR, 200)
-        try:
             if re.match(self.email_format, request.data['email']):
-                blog_user = self.serializer_class(request.user, data=request.data, context={
-                    "password": request.data['password']
-                })
+                blog_user = self.serializer_class(request.user, data=request.data, partial=True)
                 blog_user.is_valid(raise_exception=True)
                 blog_user.save()
             else:

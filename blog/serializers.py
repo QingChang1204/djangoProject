@@ -9,20 +9,25 @@ class BlogUserSerializers(ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'username', 'email', 'display_account', 'icon', 'description'
+            'username', 'email', 'display_account', 'icon', 'description', 'password'
         ]
+        extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
         instance = self.Meta.model(**validated_data)
-        instance.set_password(self.context.get('password'))
+        instance.set_password(validated_data['password'])
         instance.save()
         return instance
 
     def update(self, instance, validated_data):
+        try:
+            password = validated_data.pop('password')
+        except KeyError:
+            pass
+        else:
+            instance.set_password(password)
         for k, v in validated_data.items():
             instance.__setattr__(k, v)
-        if self.context.get('password') is not None:
-            instance.set_password(self.context.get('password'))
         instance.save()
         return instance
 
