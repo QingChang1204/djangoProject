@@ -70,14 +70,19 @@ class User(NewAbstractUser):
         super(User, self).save()
 
 
+class Category(models.Model):
+    category = models.CharField(verbose_name="目录", max_length=100)
+    datetime_created = models.DateTimeField(verbose_name="创建时间", auto_now_add=True)
+
+
 class Article(models.Model):
+    user = models.ForeignKey(User, db_constraint=False, on_delete=models.DO_NOTHING)
+    category = models.ForeignKey(Category, db_constraint=False, on_delete=models.DO_NOTHING, null=True)
     content = models.TextField(verbose_name="内容")
     title = models.CharField(verbose_name="文章标题", max_length=150)
-    user = models.ForeignKey(User, db_constraint=False, on_delete=models.DO_NOTHING)
     tag = models.CharField(verbose_name="标签", max_length=30, null=True)
     datetime_created = models.DateTimeField(verbose_name="创建时间", auto_now_add=True)
     datetime_update = models.DateTimeField(verbose_name="修改时间", auto_now=True)
-    category = models.CharField(verbose_name="目录", null=True, max_length=100)
 
     def __str__(self):
         return self.title

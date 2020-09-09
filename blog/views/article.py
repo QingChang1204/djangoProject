@@ -6,7 +6,7 @@ from rest_framework.viewsets import GenericViewSet
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from blog.errcode import ARTICLE_INFO, PARAM_ERROR, SUCCESS
 from blog.models import Article
-from blog.serializers import ArticleSerializers
+from blog.serializers import ArticleSerializers, CategorySerializers
 
 
 class ArticlePagination(PageNumberPagination):
@@ -52,7 +52,14 @@ class ArticleViewSets(GenericViewSet):
 
     def create(self, request):
         # 序列化器通过上下文兼容外键关系
-        article = self.serializer_class(data=request.data, context={"user_id": request.user.id})
+        category = CategorySerializers(data=request.data)
+        category.is_valid(raise_exception=True)
+        category = category.save()
+
+        article = self.serializer_class(data=request.data, context={
+            "user_id": request.user.id,
+            "category_id": category.id
+        })
         article.is_valid(raise_exception=True)
         article.save()
 
@@ -64,7 +71,8 @@ class ArticleViewSets(GenericViewSet):
             article = self.get_object()
         except Article.DoesNotExist:
             return Response(PARAM_ERROR)
-        serializer = self.serializer_class(data=request.data, instance=article)
+        serializer = self.serializer_class(data=request.data, instance=article, partial=True)
+        serializer.is_valid(raise_exception=True)
         serializer.save()
 
         ARTICLE_INFO['data'] = serializer.data
