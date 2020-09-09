@@ -45,7 +45,10 @@ class ArticleViewSets(GenericViewSet):
             user_id=request.user.id
         ).order_by('-datetime_created').all()
         page_list = page.paginate_queryset(articles, request, view=self)
-        serializers = self.serializer_class(instance=page_list, many=True)
+        serializers = self.serializer_class(
+            instance=page_list,
+            many=True
+        )
 
         ARTICLE_INFO['data'] = page.get_paginated_data(serializers.data)
         return Response(ARTICLE_INFO, 200)
@@ -56,10 +59,12 @@ class ArticleViewSets(GenericViewSet):
         category.is_valid(raise_exception=True)
         category = category.save()
 
-        article = self.serializer_class(data=request.data, context={
-            "user_id": request.user.id,
-            "category_id": category.id
-        })
+        article = self.serializer_class(
+            data=request.data,
+            context={
+                "user_id": request.user.id,
+                "category_id": category.id
+            })
         article.is_valid(raise_exception=True)
         article.save()
 
@@ -71,8 +76,13 @@ class ArticleViewSets(GenericViewSet):
             article = self.get_object()
         except Article.DoesNotExist:
             return Response(PARAM_ERROR)
-        serializer = self.serializer_class(data=request.data, instance=article, partial=True)
-        serializer.is_valid(raise_exception=True)
+        serializer = self.serializer_class(
+            data=request.data,
+            instance=article, partial=True
+        )
+        serializer.is_valid(
+            raise_exception=True
+        )
         serializer.save()
 
         ARTICLE_INFO['data'] = serializer.data

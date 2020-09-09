@@ -55,10 +55,24 @@ class NewAbstractUser(AbstractBaseUser, PermissionsMixin):
 
 
 class User(NewAbstractUser):
-    display_account = models.CharField(max_length=20, null=True)
-    icon = models.URLField(verbose_name="用户头像", null=True)
-    description = models.TextField(verbose_name="用户描述", null=True)
-    phone = models.CharField(verbose_name="手机号", null=True, unique=True, max_length=11)
+    display_account = models.CharField(
+        max_length=20,
+        null=True
+    )
+    icon = models.URLField(
+        verbose_name="用户头像",
+        null=True
+    )
+    description = models.TextField(
+        verbose_name="用户描述",
+        null=True
+    )
+    phone = models.CharField(
+        verbose_name="手机号",
+        null=True,
+        unique=True,
+        max_length=11
+    )
 
     def __str__(self):
         return self.username
@@ -71,18 +85,46 @@ class User(NewAbstractUser):
 
 
 class Category(models.Model):
-    category = models.CharField(verbose_name="目录", max_length=100)
-    datetime_created = models.DateTimeField(verbose_name="创建时间", auto_now_add=True)
+    category = models.CharField(
+        verbose_name="目录",
+        max_length=100
+    )
+    datetime_created = models.DateTimeField(
+        verbose_name="创建时间",
+        auto_now_add=True
+    )
 
 
 class Article(models.Model):
-    user = models.ForeignKey(User, db_constraint=False, on_delete=models.DO_NOTHING)
-    category = models.ForeignKey(Category, db_constraint=False, on_delete=models.DO_NOTHING, null=True)
+    user = models.ForeignKey(
+        User,
+        db_constraint=False,
+        on_delete=models.DO_NOTHING
+    )
+    category = models.ForeignKey(
+        Category,
+        db_constraint=False,
+        on_delete=models.DO_NOTHING,
+        null=True
+    )
     content = models.TextField(verbose_name="内容")
-    title = models.CharField(verbose_name="文章标题", max_length=150)
-    tag = models.CharField(verbose_name="标签", max_length=30, null=True)
-    datetime_created = models.DateTimeField(verbose_name="创建时间", auto_now_add=True)
-    datetime_update = models.DateTimeField(verbose_name="修改时间", auto_now=True)
+    title = models.CharField(
+        verbose_name="文章标题",
+        max_length=150
+    )
+    tag = models.CharField(
+        verbose_name="标签",
+        max_length=30,
+        null=True
+    )
+    datetime_created = models.DateTimeField(
+        verbose_name="创建时间",
+        auto_now_add=True
+    )
+    datetime_update = models.DateTimeField(
+        verbose_name="修改时间",
+        auto_now=True
+    )
 
     def __str__(self):
         return self.title

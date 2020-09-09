@@ -20,7 +20,9 @@ class UserViewSets(GenericViewSet):
 
     def list(self, request):
         # 获得用户基本信息
-        serializer = self.serializer_class(instance=request.user)
+        serializer = self.serializer_class(
+            instance=request.user
+        )
         USER_INFO['data'] = serializer.data
         return Response(USER_INFO, 200)
 
@@ -32,8 +34,12 @@ class UserViewSets(GenericViewSet):
         # 用户注册接口
         try:
             if re.match(self.email_format, request.data['email']):
-                blog_user = self.serializer_class(data=request.data)
-                blog_user.is_valid(raise_exception=True)
+                blog_user = self.serializer_class(
+                    data=request.data
+                )
+                blog_user.is_valid(
+                    raise_exception=True
+                )
                 blog_user = blog_user.save()
             else:
                 return Response(EMAIL_FORMAT_ERROR, 200)
@@ -76,7 +82,9 @@ class UserViewSets(GenericViewSet):
     def log_in(self, request):
         # 用户登录接口
         try:
-            blog_user = self.queryset.get(username=request.data['username'])
+            blog_user = self.queryset.get(
+                username=request.data['username']
+            )
             if blog_user.check_password(request.data['password']):
                 token = RefreshToken.for_user(
                     blog_user
