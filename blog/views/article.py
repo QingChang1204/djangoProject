@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from blog.errcode import ARTICLE_INFO
+from blog.errcode import ARTICLE_INFO, PARAM_ERROR, SUCCESS
 from blog.models import Article
 from blog.serializers import ArticleSerializers
 
@@ -28,6 +28,17 @@ class ArticleViewSets(GenericViewSet):
     serializer_class = ArticleSerializers
     pagination_class = ArticlePagination
 
+    def get_object(self):
+        try:
+            instance_id = int(self.request.data.pop('id', None))
+        except (ValueError, TypeError):
+            raise Article.DoesNotExist
+        instance = self.queryset.get(
+            id=instance_id,
+            user_id=self.request.user.id
+        )
+        return instance
+
     def list(self, request):
         page = self.pagination_class()
         articles = self.queryset.filter(
@@ -47,3 +58,23 @@ class ArticleViewSets(GenericViewSet):
 
         ARTICLE_INFO['data'] = article.data
         return Response(ARTICLE_INFO, 200)
+
+    def put(self, request):
+        try:
+            article = self.get_object()
+        except Article.DoesNotExist:
+            return Response(PARAM_ERROR)
+        serializer = self.serializer_class(data=request.data, instance=article)
+        serializer.save()
+
+        ARTICLE_INFO['data'] = serializer.data
+        return Response(ARTICLE_INFO, 200)
+
+    def delete(self, request):
+        try:
+            article = self.get_object()
+        except Article.DoesNotExist:
+            return Response(PARAM_ERROR)
+
+        article.delete()
+        return Response(SUCCESS, 200)
