@@ -1,3 +1,4 @@
+from django.contrib.auth import authenticate
 from django.db import IntegrityError
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -6,7 +7,7 @@ import re
 from rest_framework.viewsets import GenericViewSet
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import RefreshToken
-from blog.errcode import USER_INFO, EMAIL_FORMAT_ERROR, EXISTED_USER_NAME, TOKEN, PARAM_ERROR, SUCCESS
+from blog.errcode import USER_INFO, EMAIL_FORMAT_ERROR, EXISTED_USER_NAME, TOKEN, PARAM_ERROR, SUCCESS, LOG_FAIL
 from blog.models import User
 from blog.serializers import BlogUserSerializers
 
@@ -81,20 +82,15 @@ class UserViewSets(GenericViewSet):
             authentication_classes=[])
     def log_in(self, request):
         # 用户登录接口
-        try:
-            blog_user = self.queryset.get(
-                username=request.data['username']
+        blog_user = authenticate(username=request.data['username'], password=request.data['password'])
+        if blog_user is not None:
+            token = RefreshToken.for_user(
+                blog_user
             )
-            if blog_user.check_password(request.data['password']):
-                token = RefreshToken.for_user(
-                    blog_user
-                )
-                TOKEN['data'] = {
-                    'access_token': "Bearer " + str(token.access_token),
-                    'refresh': "Bearer " + str(token)
-                }
-                return Response(TOKEN, 200)
-            else:
-                return Response(PARAM_ERROR, 200)
-        except (KeyError, User.DoesNotExist):
-            return Response(PARAM_ERROR, 200)
+            TOKEN['data'] = {
+                'access_token': "Bearer " + str(token.access_token),
+                'refresh': "Bearer " + str(token)
+            }
+            return Response(TOKEN, 200)
+        else:
+            return Response(LOG_FAIL, 200)
