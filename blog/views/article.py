@@ -8,7 +8,8 @@ from rest_framework.viewsets import GenericViewSet
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from blog.errcode import ARTICLE_INFO, PARAM_ERROR, SUCCESS, COMMENT_INFO
 from blog.models import Article, Comment, Reply
-from blog.serializers import ArticleSerializers, CategorySerializers, CommentSerializers, ReplySerializers
+from blog.serializers import ArticleSerializers, CategorySerializers, CommentSerializers, ReplySerializers, \
+    ViewArticleSerializers
 from blog.utils import search
 
 
@@ -48,7 +49,7 @@ class ArticleViewSets(GenericViewSet):
             user_id=request.user.id
         ).order_by('-datetime_created').all()
         page_list = page.paginate_queryset(articles, request, view=self)
-        serializers = self.serializer_class(
+        serializers = ViewArticleSerializers(
             instance=page_list,
             many=True
         )
@@ -127,6 +128,47 @@ class ArticleViewSets(GenericViewSet):
             "results": serializers.data,
             "count": res_count
         }
+        return Response(ARTICLE_INFO, 200)
+
+    @action(detail=False,
+            methods=['GET'],
+            permission_classes=[AllowAny],
+            authentication_classes=[])
+    def all_article(self, request):
+        page = self.pagination_class()
+        instances = self.queryset.filter(
+            publish_status=True
+        ).order_by(
+            '-datetime_created'
+        ).all()
+        page_list = page.paginate_queryset(instances, request, view=self)
+        serializers = ViewArticleSerializers(
+            instance=page_list,
+            many=True
+        )
+
+        ARTICLE_INFO['data'] = page.get_paginated_data(serializers.data)
+        return Response(ARTICLE_INFO, 200)
+
+    @action(detail=False,
+            methods=['GET'],
+            permission_classes=[AllowAny],
+            authentication_classes=[])
+    def get_article(self, request):
+        try:
+            article_id = int(request.query_params['id'])
+        except (KeyError, ValueError):
+            return Response(PARAM_ERROR, 200)
+        try:
+            instance = self.queryset.get(
+                id=article_id,
+                publish_status=True
+            )
+        except Article.DoesNotExist:
+            return Response(PARAM_ERROR, 200)
+
+        serializers = self.serializer_class(instance=instance)
+        ARTICLE_INFO['data'] = serializers.data
         return Response(ARTICLE_INFO, 200)
 
 

@@ -46,20 +46,34 @@ class CategorySerializers(ModelSerializer):
         return instance
 
 
+class ViewArticleSerializers(ModelSerializer):
+    icon = serializers.URLField(source='user.icon', read_only=True)
+    username = serializers.CharField(source='user.username', read_only=True)
+    datetime_created = serializers.DateTimeField(format='%Y年%m月%d日 %H时:%M分:%S秒', read_only=True)
+
+    class Meta:
+        model = Article
+        fields = [
+            'id', 'title', 'datetime_created', 'icon', 'username'
+        ]
+        read_only_fields = ['id', 'title', 'datetime_created']
+
+
 class ArticleSerializers(ModelSerializer):
     # 嵌套序列化器
     category_name = serializers.CharField(source="category.category", read_only=True)
     icon = serializers.URLField(source='user.icon', read_only=True)
     username = serializers.CharField(source='user.username', read_only=True)
     display_account = serializers.CharField(source='user.display_account', read_only=True)
-    datetime_created = serializers.DateTimeField(format='%Y/%m/%d %H:%M:%S', read_only=True)
-    datetime_update = serializers.DateTimeField(format='%Y/%m/%d %H:%M:%S', read_only=True)
+    datetime_created = serializers.DateTimeField(format='%Y年%m月%d日 %H时:%M分:%S秒', read_only=True)
+    datetime_update = serializers.DateTimeField(format='%Y年%m月%d日 %H时:%M分:%S秒', read_only=True)
+    publish_status = serializers.BooleanField(write_only=True)
 
     class Meta:
         model = Article
         fields = [
             'title', 'content', 'tag', 'category_name', 'icon', 'username', 'display_account',
-            'datetime_created', 'datetime_update', 'id'
+            'datetime_created', 'datetime_update', 'id', 'publish_status'
         ]
         read_only_fields = ['datetime_created', 'datetime_update', 'id']
 
@@ -95,7 +109,7 @@ class ReplySerializers(ModelSerializer):
     to_username = serializers.CharField(source='to_user.username', read_only=True)
     to_user_id = serializers.IntegerField()
     to_user_icon = serializers.URLField(source='to_user.icon', read_only=True)
-    datetime_created = serializers.DateTimeField(format='%Y/%m/%d %H:%M:%S', read_only=True)
+    datetime_created = serializers.DateTimeField(format='%Y年%m月%d日 %H时:%M分:%S秒', read_only=True)
 
     class Meta:
         model = Reply
@@ -117,7 +131,7 @@ class CommentSerializers(ModelSerializer):
     user_id = serializers.IntegerField()
     article_id = serializers.IntegerField(write_only=True)
     reply = ReplySerializers(many=True, read_only=True)
-    datetime_created = serializers.DateTimeField(format='%Y/%m/%d %H:%M:%S', read_only=True)
+    datetime_created = serializers.DateTimeField(format='%Y年%m月%d日 %H时:%M分:%S秒', read_only=True)
 
     class Meta:
         model = Comment
