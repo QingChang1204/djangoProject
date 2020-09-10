@@ -1,5 +1,6 @@
 from django.contrib.auth import authenticate
 from django.db import IntegrityError
+from django.utils import timezone
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -84,6 +85,8 @@ class UserViewSets(GenericViewSet):
         # 用户登录接口
         blog_user = authenticate(username=request.data['username'], password=request.data['password'])
         if blog_user is not None:
+            blog_user.last_login = timezone.now()
+            blog_user.save()
             token = RefreshToken.for_user(
                 blog_user
             )
