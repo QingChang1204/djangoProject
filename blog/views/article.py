@@ -1,12 +1,15 @@
 from collections import OrderedDict
+
+from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from blog.errcode import ARTICLE_INFO, PARAM_ERROR, SUCCESS, COMMENT_INFO
 from blog.models import Article, Comment, Reply
 from blog.serializers import ArticleSerializers, CategorySerializers, CommentSerializers, ReplySerializers
+from blog.utils import search
 
 
 class ArticlePagination(PageNumberPagination):
@@ -97,6 +100,34 @@ class ArticleViewSets(GenericViewSet):
 
         article.delete()
         return Response(SUCCESS, 200)
+
+    @action(detail=False,
+            methods=['POST'],
+            permission_classes=[AllowAny],
+            authentication_classes=[])
+    def search(self, request):
+        try:
+            search_keywords = request.data['search_keywords']
+            page = int(request.data['page'])
+        except (KeyError, ValueError):
+            return Response(PARAM_ERROR, 200)
+        res_dict, res_count = search.query_search(search_keywords, page, 10)
+        article_id_list = []
+        for res in res_dict['hits']['hits']:
+            article_id_list.append(res['_id'])
+        articles = self.queryset.filter(
+            id__in=article_id_list
+        ).all()
+        serializers = self.serializer_class(
+            instance=articles,
+            many=True
+        )
+
+        ARTICLE_INFO['data'] = {
+            "results": serializers.data,
+            "count": res_count
+        }
+        return Response(ARTICLE_INFO, 200)
 
 
 class CommentPagination(PageNumberPagination):

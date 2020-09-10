@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 from blog.models import User, Article, Category, Reply, Comment
+from blog.utils import search
 
 
 class BlogUserSerializers(ModelSerializer):
@@ -69,12 +70,20 @@ class ArticleSerializers(ModelSerializer):
             category_id=self.context.get('category_id')
         )
         instance.save()
+        search_word = instance.content + instance.title
+        if instance.tag is not None:
+            search_word += instance.tag
+        search.handle_search(instance.id, search_word)
         return instance
 
     def update(self, instance, validated_data):
         for k, v in validated_data.items():
             instance.__setattr__(k, v)
         instance.save()
+        search_word = instance.content + instance.title
+        if instance.tag is not None:
+            search_word += instance.tag
+        search.handle_search(instance.id, search_word)
         return instance
 
 
