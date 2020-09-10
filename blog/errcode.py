@@ -61,3 +61,9 @@ ARTICLE_INFO = {
     "data": {},
     "detail": " article info "
 }
+
+COMMENT_INFO = {
+    "err_code": 2002,
+    "data": {},
+    "detail": " comment info "
+}

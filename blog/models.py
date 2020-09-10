@@ -73,6 +73,9 @@ class User(NewAbstractUser):
         unique=True,
         max_length=11
     )
+    datetime_noticed = models.DateTimeField(
+        verbose_name="通知时间"
+    )
 
     def __str__(self):
         return self.username
@@ -128,3 +131,60 @@ class Article(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class Comment(models.Model):
+    article = models.ForeignKey(
+        Article,
+        db_constraint=False,
+        on_delete=models.DO_NOTHING
+    )
+    user = models.ForeignKey(
+        User,
+        db_constraint=False,
+        on_delete=models.DO_NOTHING
+    )
+    content = models.CharField(
+        verbose_name="评论内容",
+        max_length=200
+    )
+    datetime_created = models.DateTimeField(
+        verbose_name="创建时间",
+        auto_now_add=True
+    )
+
+
+class Reply(models.Model):
+    comment = models.ForeignKey(
+        Comment,
+        db_constraint=False,
+        on_delete=models.DO_NOTHING,
+        related_name="reply"
+    )
+    user = models.ForeignKey(
+        User,
+        db_constraint=False,
+        on_delete=models.DO_NOTHING
+    )
+    to_user = models.ForeignKey(
+        User,
+        db_constraint=False,
+        on_delete=models.DO_NOTHING,
+        related_name="to_user"
+    )
+    content = models.CharField(
+        verbose_name="回复内容",
+        max_length=200
+    )
+    datetime_created = models.DateTimeField(
+        verbose_name="创建时间",
+        auto_now_add=True
+    )
+
+    def __str__(self):
+        return "{}回复{}: {}".format(
+            self.user.username,
+            self.to_user.username,
+            self.content
+        )
+
