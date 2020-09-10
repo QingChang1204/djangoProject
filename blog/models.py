@@ -187,4 +187,3 @@ class Reply(models.Model):
             self.to_user.username,
             self.content
         )
-
