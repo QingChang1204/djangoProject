@@ -120,6 +120,10 @@ class Article(models.Model):
         max_length=30,
         null=True
     )
+    publish_status = models.BooleanField(
+        verbose_name="发布状态",
+        default=False
+    )
     datetime_created = models.DateTimeField(
         verbose_name="创建时间",
         auto_now_add=True
