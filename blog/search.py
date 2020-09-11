@@ -1,5 +1,5 @@
 from elasticsearch import NotFoundError
-from elasticsearch_dsl import Search, Document, Text
+from elasticsearch_dsl import Search, Document, Text, Boolean
 from elasticsearch_dsl.connections import connections
 
 connections.create_connection(
@@ -11,6 +11,7 @@ connections.create_connection(
 
 class Article(Document):
     search_word = Text(analyzer="ik_max_word")
+    publish_status = Boolean()
 
     class Index:
         name = 'article'
@@ -22,9 +23,9 @@ class SearchByEs:
         Article.init()
         self.article = Article
 
-    def handle_search(self, article_id, search_word):
+    def handle_search(self, article_id, search_word, publish_status):
         article = self.article(
-            meta={'id': article_id}, search_word=search_word
+            meta={'id': article_id}, search_word=search_word, publish_status=publish_status
         )
         article.save()
 
@@ -34,6 +35,8 @@ class SearchByEs:
             index='article'
         ).query(
             "match", search_word=search_word
+        ).query(
+            "match_phrase", publish_status=True
         )[(page - 1) * page_size: page * page_size]
         res_count = search.count()
         res = search.execute()

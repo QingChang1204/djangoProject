@@ -104,7 +104,7 @@ class ArticleSerializers(serializers.ModelSerializer):
         search_word = instance.content + instance.title
         if instance.tag is not None:
             search_word += instance.tag
-        search.handle_search(instance.id, search_word)
+        search.handle_search(instance.id, search_word, instance.publish_status)
         if self.initial_data.get('images'):
             image_serializers = ArticleImageSerializers(
                 data=self.initial_data['images'],
@@ -122,7 +122,7 @@ class ArticleSerializers(serializers.ModelSerializer):
         search_word = instance.content + instance.title
         if instance.tag is not None:
             search_word += instance.tag
-        search.handle_search(instance.id, search_word)
+        search.handle_search(instance.id, search_word, instance.publish_status)
         return instance
 
 
