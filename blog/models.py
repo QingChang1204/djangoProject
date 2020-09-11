@@ -15,7 +15,12 @@ import hashids
 class NewAbstractUser(AbstractBaseUser, PermissionsMixin):
     username_validator = UnicodeUsernameValidator()
 
-    id = models.UUIDField(primary_key=True, unique=True, default=uuid.uuid4, editable=False)
+    id = models.UUIDField(
+        primary_key=True,
+        unique=True,
+        default=uuid.uuid4,
+        editable=False
+    )
     username = models.CharField(
         max_length=100,
         unique=True,
@@ -92,6 +97,12 @@ class User(NewAbstractUser):
 
 
 class Category(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        unique=True,
+        default=uuid.uuid4,
+        editable=False
+    )
     category = models.CharField(
         verbose_name="目录",
         max_length=100
@@ -103,8 +114,12 @@ class Category(models.Model):
 
 
 class Article(models.Model):
-    # todo 文章增加动态图片
-    id = models.UUIDField(primary_key=True, unique=True, default=uuid.uuid4, editable=False)
+    id = models.UUIDField(
+        primary_key=True,
+        unique=True,
+        default=uuid.uuid4,
+        editable=False
+    )
     user = models.ForeignKey(
         User,
         db_constraint=False,
@@ -143,8 +158,31 @@ class Article(models.Model):
         return self.title
 
 
+class ArticleImage(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        unique=True,
+        default=uuid.uuid4,
+        editable=False
+    )
+    article = models.ForeignKey(
+        Article,
+        db_constraint=False,
+        on_delete=models.DO_NOTHING,
+        related_name="article_image"
+    )
+    image = models.URLField(
+        verbose_name="文章图片"
+    )
+
+
 class Comment(models.Model):
-    id = models.UUIDField(primary_key=True, unique=True, default=uuid.uuid4, editable=False)
+    id = models.UUIDField(
+        primary_key=True,
+        unique=True,
+        default=uuid.uuid4,
+        editable=False
+    )
     article = models.ForeignKey(
         Article,
         db_constraint=False,
@@ -166,6 +204,12 @@ class Comment(models.Model):
 
 
 class Reply(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        unique=True,
+        default=uuid.uuid4,
+        editable=False
+    )
     comment = models.ForeignKey(
         Comment,
         db_constraint=False,
