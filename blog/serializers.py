@@ -1,10 +1,9 @@
 from rest_framework import serializers
-from rest_framework.serializers import ModelSerializer
-from blog.models import User, Article, Category, Reply, Comment
+from blog.models import User, Article, Category, Reply, Comment, ArticleImage
 from blog.utils import search
 
 
-class BlogUserSerializers(ModelSerializer):
+class BlogUserSerializers(serializers.ModelSerializer):
     # 设计新的用户序列化器
 
     class Meta:
@@ -33,7 +32,7 @@ class BlogUserSerializers(ModelSerializer):
         return instance
 
 
-class CategorySerializers(ModelSerializer):
+class CategorySerializers(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = [
@@ -46,20 +45,37 @@ class CategorySerializers(ModelSerializer):
         return instance
 
 
-class ViewArticleSerializers(ModelSerializer):
+class ArticleImageSerializers(serializers.ModelSerializer):
+    class Meta:
+        model = ArticleImage
+        fields = [
+            'image', 'id'
+        ]
+
+    def create(self, validated_data):
+        instance = self.Meta.model(
+            **validated_data,
+            article_id=self.context['article_id']
+        )
+        instance.save()
+        return instance
+
+
+class ViewArticleSerializers(serializers.ModelSerializer):
     icon = serializers.URLField(source='user.icon', read_only=True)
     username = serializers.CharField(source='user.username', read_only=True)
     datetime_created = serializers.DateTimeField(format='%Y年%m月%d日 %H时:%M分:%S秒', read_only=True)
+    article_image = ArticleImageSerializers(many=True, read_only=True)
 
     class Meta:
         model = Article
         fields = [
-            'id', 'title', 'datetime_created', 'icon', 'username'
+            'id', 'title', 'datetime_created', 'icon', 'username', 'article_image'
         ]
         read_only_fields = ['id', 'title', 'datetime_created']
 
 
-class ArticleSerializers(ModelSerializer):
+class ArticleSerializers(serializers.ModelSerializer):
     # 嵌套序列化器
     category_name = serializers.CharField(source="category.category", read_only=True)
     icon = serializers.URLField(source='user.icon', read_only=True)
@@ -68,26 +84,35 @@ class ArticleSerializers(ModelSerializer):
     datetime_created = serializers.DateTimeField(format='%Y年%m月%d日 %H时:%M分:%S秒', read_only=True)
     datetime_update = serializers.DateTimeField(format='%Y年%m月%d日 %H时:%M分:%S秒', read_only=True)
     publish_status = serializers.BooleanField(write_only=True)
+    article_image = ArticleImageSerializers(many=True, read_only=True)
 
     class Meta:
         model = Article
         fields = [
             'title', 'content', 'tag', 'category_name', 'icon', 'username', 'display_account',
-            'datetime_created', 'datetime_update', 'id', 'publish_status'
+            'datetime_created', 'datetime_update', 'id', 'publish_status', 'article_image'
         ]
         read_only_fields = ['datetime_created', 'datetime_update', 'id']
 
     def create(self, validated_data):
         instance = self.Meta.model(
             **validated_data,
-            user_id=self.context.get('user_id'),
-            category_id=self.context.get('category_id')
+            user_id=self.context['user_id'],
+            category_id=self.context['category_id']
         )
         instance.save()
         search_word = instance.content + instance.title
         if instance.tag is not None:
             search_word += instance.tag
-        search.handle_search(instance.id, search_word)
+        search.handle_search(instance.id, search_word, instance.publish_status)
+        if self.initial_data.get('images'):
+            image_serializers = ArticleImageSerializers(
+                data=self.initial_data['images'],
+                context={"article_id": instance.id},
+                many=True
+            )
+            image_serializers.is_valid(raise_exception=True)
+            image_serializers.save()
         return instance
 
     def update(self, instance, validated_data):
@@ -97,17 +122,17 @@ class ArticleSerializers(ModelSerializer):
         search_word = instance.content + instance.title
         if instance.tag is not None:
             search_word += instance.tag
-        search.handle_search(instance.id, search_word)
+        search.handle_search(instance.id, search_word, instance.publish_status)
         return instance
 
 
-class ReplySerializers(ModelSerializer):
-    comment_id = serializers.IntegerField(write_only=True)
+class ReplySerializers(serializers.ModelSerializer):
+    comment_id = serializers.UUIDField(write_only=True)
     username = serializers.CharField(source='user.username', read_only=True)
-    user_id = serializers.IntegerField()
+    user_id = serializers.UUIDField()
     user_icon = serializers.URLField(source='user.icon', read_only=True)
     to_username = serializers.CharField(source='to_user.username', read_only=True)
-    to_user_id = serializers.IntegerField()
+    to_user_id = serializers.UUIDField()
     to_user_icon = serializers.URLField(source='to_user.icon', read_only=True)
     datetime_created = serializers.DateTimeField(format='%Y年%m月%d日 %H时:%M分:%S秒', read_only=True)
 
@@ -126,10 +151,10 @@ class ReplySerializers(ModelSerializer):
         return instance
 
 
-class CommentSerializers(ModelSerializer):
+class CommentSerializers(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username', read_only=True)
-    user_id = serializers.IntegerField()
-    article_id = serializers.IntegerField(write_only=True)
+    user_id = serializers.UUIDField()
+    article_id = serializers.UUIDField()
     reply = ReplySerializers(many=True, read_only=True)
     datetime_created = serializers.DateTimeField(format='%Y年%m月%d日 %H时:%M分:%S秒', read_only=True)
 

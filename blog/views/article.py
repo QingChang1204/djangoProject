@@ -1,3 +1,4 @@
+import uuid
 from collections import OrderedDict
 
 from rest_framework.decorators import action
@@ -34,8 +35,8 @@ class ArticleViewSets(GenericViewSet):
 
     def get_object(self):
         try:
-            instance_id = int(self.request.data.pop('id', None))
-        except (ValueError, TypeError):
+            instance_id = uuid.UUID(self.request.data.pop('id', None))
+        except (ValueError, TypeError, AttributeError):
             raise Article.DoesNotExist
         instance = self.queryset.get(
             id=instance_id,
@@ -156,8 +157,8 @@ class ArticleViewSets(GenericViewSet):
             authentication_classes=[])
     def get_article(self, request):
         try:
-            article_id = int(request.query_params['id'])
-        except (KeyError, ValueError):
+            article_id = uuid.UUID(request.query_params['id'])
+        except (KeyError, ValueError, AttributeError):
             return Response(PARAM_ERROR, 200)
         try:
             instance = self.queryset.get(
@@ -194,8 +195,8 @@ class CommentViewSets(GenericViewSet):
     def list(self, request):
         data = request.query_params
         try:
-            article_id = int(data['article_id'])
-        except (KeyError, ValueError):
+            article_id = uuid.UUID(data['article_id'])
+        except (KeyError, ValueError, AttributeError):
             return Response(PARAM_ERROR, 200)
         page = self.pagination_class()
         comments = self.queryset.filter(
@@ -231,13 +232,13 @@ class CommentViewSets(GenericViewSet):
 
     def delete(self, request):
         try:
-            comment_id = int(request.data['id'])
-        except (KeyError, ValueError):
+            comment_id = uuid.UUID(request.data['id'])
+        except (KeyError, ValueError, AttributeError):
             return Response(PARAM_ERROR, 200)
 
         if self.queryset.filter(
-            id=comment_id,
-            user_id=request.user.id
+                id=comment_id,
+                user_id=request.user.id
         ).delete():
             Reply.objects.filter(
                 comment_id=request.data['id']
