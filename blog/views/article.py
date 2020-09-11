@@ -236,8 +236,8 @@ class CommentViewSets(GenericViewSet):
             return Response(PARAM_ERROR, 200)
 
         if self.queryset.filter(
-            id=comment_id,
-            user_id=request.user.id
+                id=comment_id,
+                user_id=request.user.id
         ).delete():
             Reply.objects.filter(
                 comment_id=request.data['id']

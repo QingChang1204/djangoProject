@@ -1,4 +1,6 @@
 import time
+import uuid
+
 from django.contrib.auth.base_user import AbstractBaseUser
 from django.contrib.auth.models import PermissionsMixin, UserManager
 from django.contrib.auth.validators import UnicodeUsernameValidator
@@ -13,6 +15,7 @@ import hashids
 class NewAbstractUser(AbstractBaseUser, PermissionsMixin):
     username_validator = UnicodeUsernameValidator()
 
+    id = models.UUIDField(primary_key=True, unique=True, default=uuid.uuid4, editable=False)
     username = models.CharField(
         max_length=100,
         unique=True,
@@ -74,7 +77,8 @@ class User(NewAbstractUser):
         max_length=11
     )
     datetime_noticed = models.DateTimeField(
-        verbose_name="通知时间"
+        verbose_name="通知时间",
+        null=True
     )
 
     def __str__(self):
@@ -99,6 +103,8 @@ class Category(models.Model):
 
 
 class Article(models.Model):
+    # todo 文章增加动态图片
+    id = models.UUIDField(primary_key=True, unique=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(
         User,
         db_constraint=False,
@@ -138,6 +144,7 @@ class Article(models.Model):
 
 
 class Comment(models.Model):
+    id = models.UUIDField(primary_key=True, unique=True, default=uuid.uuid4, editable=False)
     article = models.ForeignKey(
         Article,
         db_constraint=False,
