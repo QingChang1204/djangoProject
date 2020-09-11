@@ -100,7 +100,9 @@ class ArticleViewSets(GenericViewSet):
         except Article.DoesNotExist:
             return Response(PARAM_ERROR)
 
+        search.delete_search(article_id=article.id)
         article.delete()
+
         return Response(SUCCESS, 200)
 
     @action(detail=False,
