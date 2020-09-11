@@ -153,18 +153,24 @@ class ArticleViewSets(GenericViewSet):
 
     @action(detail=False,
             methods=['GET'],
-            permission_classes=[AllowAny],
-            authentication_classes=[])
+            permission_classes=[AllowAny | IsAuthenticated],
+            authentication_classes=[JWTAuthentication])
     def get_article(self, request):
         try:
             article_id = uuid.UUID(request.query_params['id'])
         except (KeyError, ValueError, AttributeError):
             return Response(PARAM_ERROR, 200)
         try:
-            instance = self.queryset.get(
-                id=article_id,
-                publish_status=True
-            )
+            if request.user.is_anonymous:
+                instance = self.queryset.get(
+                    id=article_id,
+                    publish_status=True
+                )
+            else:
+                instance = self.queryset.get(
+                    id=article_id,
+                    user_id=request.user.id
+                )
         except Article.DoesNotExist:
             return Response(PARAM_ERROR, 200)
 
