@@ -13,6 +13,21 @@ import datetime
 import os
 import platform
 from pathlib import Path
+from sys import path
+
+
+def here(*x):
+    return os.path.join(os.path.abspath(os.path.dirname(__file__)), *x)
+
+
+PROJECT_ROOT = here("..")
+
+
+def root(*x):
+    return os.path.join(os.path.abspath(PROJECT_ROOT), *x)
+
+
+path.append(root('apps'))
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
