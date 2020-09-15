@@ -189,7 +189,7 @@ syslog_address = 'log/'
 if not os.path.exists(syslog_address):
     os.mkdir(syslog_address)
 
-syslog_format = '%(asctime)s [service=Aliyun][%(name)s] %(levelname)s [{hostname}  %(process)d] ' \
+syslog_format = '%(asctime)s [%(name)s] %(levelname)s [{hostname}  %(process)d] ' \
                 '[%(pathname)s:%(lineno)d] - %(message)s'.format(hostname=hostname)
 
 LOGGING = {
@@ -262,6 +262,7 @@ LOGGING = {
         },
     }
 }
+AUTHENTICATION_BACKENDS = ('blog.views.auth.CustomBackend', )
 
 MIGRATE_APPS = ['blog']
 AUTH_USER_MODEL = 'blog.User'

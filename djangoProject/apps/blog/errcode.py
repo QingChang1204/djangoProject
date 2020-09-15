@@ -33,7 +33,7 @@ LOG_FAIL = {
 EXISTED_USER_NAME = {
     "err_code": 1003,
     "data": {},
-    "detail": " existed name "
+    "detail": " existed name or phone "
 }
 
 USER_INFO = {
