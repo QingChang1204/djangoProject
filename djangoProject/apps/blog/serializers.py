@@ -112,6 +112,17 @@ class ArticleSerializers(SimpleArticleSerializers):
         return instance
 
     def update(self, instance, validated_data):
+
+        if self.initial_data.get('article_image'):
+            ArticleImage.objects.stealth_delete(instance)
+            image_serializers = ArticleImageSerializers(
+                data=self.initial_data['article_image'],
+                context={"article_id": instance.id},
+                many=True
+            )
+            image_serializers.is_valid(raise_exception=True)
+            image_serializers.save()
+
         for k, v in validated_data.items():
             instance.__setattr__(k, v)
         instance.save()

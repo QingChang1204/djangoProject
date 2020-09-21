@@ -158,6 +158,22 @@ class Article(models.Model):
         return self.title
 
 
+class ImageManager(models.Manager):
+    def get_all_queryset(self):
+        return super(ImageManager, self).get_queryset()
+
+    def get_queryset(self):
+        return super(ImageManager, self).get_queryset().filter(status=True)
+
+    def stealth_delete(self, instance):
+        self.get_all_queryset().filter(
+            article=instance,
+            status=True
+        ).update(
+            status=False
+        )
+
+
 class ArticleImage(models.Model):
     id = models.UUIDField(
         primary_key=True,
@@ -174,6 +190,10 @@ class ArticleImage(models.Model):
     image = models.URLField(
         verbose_name="文章图片"
     )
+    status = models.BooleanField(
+        default=True
+    )
+    objects = ImageManager()
 
 
 class Comment(models.Model):
