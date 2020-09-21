@@ -61,7 +61,7 @@ class ArticleImageSerializers(serializers.ModelSerializer):
         return instance
 
 
-class ViewArticleSerializers(serializers.ModelSerializer):
+class SimpleArticleSerializers(serializers.ModelSerializer):
     icon = serializers.URLField(source='user.icon', read_only=True)
     username = serializers.CharField(source='user.username', read_only=True)
     datetime_created = serializers.DateTimeField(format='%Y年%m月%d日 %H时:%M分:%S秒', read_only=True)
@@ -75,24 +75,20 @@ class ViewArticleSerializers(serializers.ModelSerializer):
         read_only_fields = ['id', 'title', 'datetime_created']
 
 
-class ArticleSerializers(serializers.ModelSerializer):
-    # 嵌套序列化器
+class ArticleSerializers(SimpleArticleSerializers):
     category_name = serializers.CharField(source="category.category", read_only=True)
-    icon = serializers.URLField(source='user.icon', read_only=True)
-    username = serializers.CharField(source='user.username', read_only=True)
     display_account = serializers.CharField(source='user.display_account', read_only=True)
-    datetime_created = serializers.DateTimeField(format='%Y年%m月%d日 %H时:%M分:%S秒', read_only=True)
     datetime_update = serializers.DateTimeField(format='%Y年%m月%d日 %H时:%M分:%S秒', read_only=True)
     publish_status = serializers.BooleanField(write_only=True)
-    article_image = ArticleImageSerializers(many=True, read_only=True)
 
-    class Meta:
-        model = Article
-        fields = [
-            'title', 'content', 'tag', 'category_name', 'icon', 'username', 'display_account',
-            'datetime_created', 'datetime_update', 'id', 'publish_status', 'article_image'
+    def __init__(self, *args, **kwargs):
+        self.Meta = super(ArticleSerializers, self).Meta
+        self.Meta.fields += [
+            'category_name', 'display_account', 'datetime_update', 'publish_status', 'content',
+            'tag'
         ]
-        read_only_fields = ['datetime_created', 'datetime_update', 'id']
+        self.Meta.read_only_fields = ['datetime_created', 'datetime_update', 'id']
+        super().__init__(*args, **kwargs)
 
     def create(self, validated_data):
         instance = self.Meta.model(
@@ -172,3 +168,5 @@ class CommentSerializers(serializers.ModelSerializer):
         )
         instance.save()
         return instance
+
+# todo 序列化器复写  ---  动态序列化器复写

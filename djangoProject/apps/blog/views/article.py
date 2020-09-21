@@ -10,7 +10,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from blog.errcode import ARTICLE_INFO, PARAM_ERROR, SUCCESS, COMMENT_INFO
 from blog.models import Article, Comment, Reply
 from blog.serializers import ArticleSerializers, CategorySerializers, CommentSerializers, ReplySerializers, \
-    ViewArticleSerializers
+    SimpleArticleSerializers
 from blog.utils import search
 
 
@@ -50,7 +50,7 @@ class ArticleViewSets(GenericViewSet):
             user_id=request.user.id
         ).order_by('-datetime_created').all()
         page_list = page.paginate_queryset(articles, request, view=self)
-        serializers = ViewArticleSerializers(
+        serializers = self.serializer_class(
             instance=page_list,
             many=True
         )
@@ -145,7 +145,7 @@ class ArticleViewSets(GenericViewSet):
             '-datetime_created'
         ).all()
         page_list = page.paginate_queryset(instances, request, view=self)
-        serializers = ViewArticleSerializers(
+        serializers = SimpleArticleSerializers(
             instance=page_list,
             many=True
         )
