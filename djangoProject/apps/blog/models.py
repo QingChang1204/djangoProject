@@ -237,7 +237,7 @@ class Reply(models.Model):
         Comment,
         db_constraint=False,
         on_delete=models.DO_NOTHING,
-        related_name="reply",
+        related_name="replies",
         related_query_name="reply"
     )
     user = models.ForeignKey(

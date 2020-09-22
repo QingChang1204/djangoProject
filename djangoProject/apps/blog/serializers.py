@@ -162,14 +162,14 @@ class CommentSerializers(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username', read_only=True)
     user_id = serializers.UUIDField()
     article_id = serializers.UUIDField()
-    reply = ReplySerializers(many=True, read_only=True)
+    replies = ReplySerializers(many=True, read_only=True)
     datetime_created = serializers.DateTimeField(format='%Y年%m月%d日 %H时:%M分:%S秒', read_only=True)
 
     class Meta:
         model = Comment
         fields = [
             'id', 'user_id', 'username', 'content', 'datetime_created',
-            'reply', 'article_id'
+            'replies', 'article_id'
         ]
         read_only_fields = ['id']
 
