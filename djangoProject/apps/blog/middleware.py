@@ -6,18 +6,18 @@ from blog.constants import LIMIT_LOG_MAX_TIME, LIMIT_LOG_EXPIRE_TIME, LOG_IN_URL
 from .utils import logger
 
 
-def get_client_ip(request):
-    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-    if x_forwarded_for:
-        ip = x_forwarded_for.split(',')[0]
-    else:
-        ip = request.META.get('REMOTE_ADDR')
-    return ip
-
-
 class RequestLimit:
     def __init__(self):
         self.redis = get_redis_connection()
+
+    @staticmethod
+    def get_client_ip(request):
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
 
     def check(self, code, user_id, increment):
         key = REDIS_KEY['limit_key'].format(code, user_id)
@@ -38,18 +38,19 @@ class RequestLimit:
         return success
 
 
-def check_prevent(user_id, ip, increment):
-    prevent_client = RequestLimit()
-    if user_id is not None:
-        success = prevent_client.check('user_limit', user_id, increment)
-    else:
-        success = prevent_client.check('user_limit', ip, increment)
-    return success
+prevent_client = RequestLimit()
 
 
 class PreventMiddleware(MiddlewareMixin):
     @staticmethod
-    def process_request(request):
+    def check_prevent(user_id, ip, increment):
+        if user_id is not None:
+            success = prevent_client.check('user_limit', user_id, increment)
+        else:
+            success = prevent_client.check('user_limit', ip, increment)
+        return success
+
+    def process_request(self, request):
         data = {}
         path = request.path
         if path in LOG_IN_URL_PATH:
@@ -57,9 +58,9 @@ class PreventMiddleware(MiddlewareMixin):
                 user_id = None
             else:
                 user_id = request.user.id
-            ip = get_client_ip(request)
+            ip = prevent_client.get_client_ip(request)
             increment = 1
-            write_success = check_prevent(user_id, ip, increment)
+            write_success = self.check_prevent(user_id, ip, increment)
 
             if not write_success:
                 data["msg"] = "您的访问过于频繁，请稍后再试"
