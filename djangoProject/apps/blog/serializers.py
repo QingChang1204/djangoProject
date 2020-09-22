@@ -134,12 +134,12 @@ class ArticleSerializers(SimpleArticleSerializers):
 
 
 class ReplySerializers(serializers.ModelSerializer):
-    comment_id = serializers.UUIDField(write_only=True)
+    comment_id = serializers.IntegerField(write_only=True)
     username = serializers.CharField(source='user.username', read_only=True)
-    user_id = serializers.UUIDField()
+    user_id = serializers.IntegerField()
     user_icon = serializers.URLField(source='user.icon', read_only=True)
     to_username = serializers.CharField(source='to_user.username', read_only=True)
-    to_user_id = serializers.UUIDField()
+    to_user_id = serializers.IntegerField()
     to_user_icon = serializers.URLField(source='to_user.icon', read_only=True)
     datetime_created = serializers.DateTimeField(format='%Y年%m月%d日 %H时:%M分:%S秒', read_only=True)
 
@@ -160,8 +160,8 @@ class ReplySerializers(serializers.ModelSerializer):
 
 class CommentSerializers(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username', read_only=True)
-    user_id = serializers.UUIDField()
-    article_id = serializers.UUIDField()
+    user_id = serializers.IntegerField()
+    article_id = serializers.IntegerField()
     replies = ReplySerializers(many=True, read_only=True)
     datetime_created = serializers.DateTimeField(format='%Y年%m月%d日 %H时:%M分:%S秒', read_only=True)
 
@@ -180,4 +180,4 @@ class CommentSerializers(serializers.ModelSerializer):
         instance.save()
         return instance
 
-# todo 序列化器复写  ---  动态序列化器复写
+# todo 动态序列化器复写
