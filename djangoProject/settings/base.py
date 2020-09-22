@@ -73,6 +73,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'blog.middleware.PreventMiddleware'
 ]
 
 ROOT_URLCONF = 'djangoProject.urls'
@@ -263,7 +264,10 @@ LOGGING = {
         },
     }
 }
-AUTHENTICATION_BACKENDS = ('blog.views.auth.CustomBackend', )
+AUTHENTICATION_BACKENDS = ('blog.views.auth.CustomBackend',)
 
 MIGRATE_APPS = ['blog']
 AUTH_USER_MODEL = 'blog.User'
+APPEND_SLASH = False
+
+DJANGO_REDIS_CONNECTION_FACTORY = "blog.utils.DecodeConnectionFactory"
