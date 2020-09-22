@@ -65,12 +65,12 @@ class SimpleArticleSerializers(serializers.ModelSerializer):
     icon = serializers.URLField(source='user.icon', read_only=True)
     username = serializers.CharField(source='user.username', read_only=True)
     datetime_created = serializers.DateTimeField(format='%Y年%m月%d日 %H时:%M分:%S秒', read_only=True)
-    article_image = ArticleImageSerializers(many=True, read_only=True)
+    article_images = ArticleImageSerializers(many=True, read_only=True)
 
     class Meta:
         model = Article
         fields = [
-            'id', 'title', 'datetime_created', 'icon', 'username', 'article_image'
+            'id', 'title', 'datetime_created', 'icon', 'username', 'article_images'
         ]
         read_only_fields = ['id', 'title', 'datetime_created']
 
@@ -113,10 +113,10 @@ class ArticleSerializers(SimpleArticleSerializers):
 
     def update(self, instance, validated_data):
 
-        if self.initial_data.get('article_image'):
+        if self.initial_data.get('images'):
             ArticleImage.objects.stealth_delete(instance)
             image_serializers = ArticleImageSerializers(
-                data=self.initial_data['article_image'],
+                data=self.initial_data['images'],
                 context={"article_id": instance.id},
                 many=True
             )

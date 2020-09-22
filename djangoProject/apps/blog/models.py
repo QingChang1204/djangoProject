@@ -131,7 +131,9 @@ class Article(models.Model):
         on_delete=models.DO_NOTHING,
         null=True
     )
-    content = models.TextField(verbose_name="内容")
+    content = models.TextField(
+        verbose_name="内容"
+    )
     title = models.CharField(
         verbose_name="文章标题",
         max_length=150
@@ -185,7 +187,8 @@ class ArticleImage(models.Model):
         Article,
         db_constraint=False,
         on_delete=models.DO_NOTHING,
-        related_name="article_image"
+        related_name="article_images",
+        related_query_name="image"
     )
     image = models.URLField(
         verbose_name="文章图片"
@@ -234,7 +237,8 @@ class Reply(models.Model):
         Comment,
         db_constraint=False,
         on_delete=models.DO_NOTHING,
-        related_name="reply"
+        related_name="reply",
+        related_query_name="reply"
     )
     user = models.ForeignKey(
         User,
@@ -255,10 +259,3 @@ class Reply(models.Model):
         verbose_name="创建时间",
         auto_now_add=True
     )
-
-    def __str__(self):
-        return "{}回复{}: {}".format(
-            self.user.username,
-            self.to_user.username,
-            self.content
-        )
