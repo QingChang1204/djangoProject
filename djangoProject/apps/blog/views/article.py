@@ -1,10 +1,11 @@
+import json
 import uuid
 from collections import OrderedDict
 
+from django.http import HttpResponse
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from blog.errcode import ARTICLE_INFO, PARAM_ERROR, SUCCESS, COMMENT_INFO
@@ -56,7 +57,7 @@ class ArticleViewSets(GenericViewSet):
         )
 
         ARTICLE_INFO['data'] = page.get_paginated_data(serializers.data)
-        return Response(ARTICLE_INFO, 200)
+        return HttpResponse(json.dumps(ARTICLE_INFO, ensure_ascii=False), status=200)
 
     def create(self, request):
         # 序列化器通过上下文兼容外键关系
@@ -74,13 +75,13 @@ class ArticleViewSets(GenericViewSet):
         article.save()
 
         ARTICLE_INFO['data'] = article.data
-        return Response(ARTICLE_INFO, 200)
+        return HttpResponse(json.dumps(ARTICLE_INFO, ensure_ascii=False), status=200)
 
     def put(self, request):
         try:
             article = self.get_object()
         except Article.DoesNotExist:
-            return Response(PARAM_ERROR)
+            return HttpResponse(json.dumps(PARAM_ERROR, ensure_ascii=False))
         serializer = self.serializer_class(
             data=request.data,
             instance=article,
@@ -92,18 +93,18 @@ class ArticleViewSets(GenericViewSet):
         serializer.save()
 
         ARTICLE_INFO['data'] = serializer.data
-        return Response(ARTICLE_INFO, 200)
+        return HttpResponse(json.dumps(ARTICLE_INFO, ensure_ascii=False), status=200)
 
     def delete(self, request):
         try:
             article = self.get_object()
         except Article.DoesNotExist:
-            return Response(PARAM_ERROR)
+            return HttpResponse(json.dumps(PARAM_ERROR, ensure_ascii=False), status=200)
 
         search.delete_search(article_id=article.id)
         article.delete()
 
-        return Response(SUCCESS, 200)
+        return HttpResponse(json.dumps(SUCCESS, ensure_ascii=False), status=200)
 
     @action(detail=False,
             methods=['POST'],
@@ -114,7 +115,7 @@ class ArticleViewSets(GenericViewSet):
             search_keywords = request.data['search_keywords']
             page = int(request.data['page'])
         except (KeyError, ValueError):
-            return Response(PARAM_ERROR, 200)
+            return HttpResponse(json.dumps(PARAM_ERROR, ensure_ascii=False), status=200)
         res_dict, res_count = search.query_search(search_keywords, page, 10)
         article_id_list = []
         for res in res_dict['hits']['hits']:
@@ -131,7 +132,7 @@ class ArticleViewSets(GenericViewSet):
             "results": serializers.data,
             "count": res_count
         }
-        return Response(ARTICLE_INFO, 200)
+        return HttpResponse(json.dumps(ARTICLE_INFO, ensure_ascii=False), status=200)
 
     @action(detail=False,
             methods=['GET'],
@@ -151,7 +152,7 @@ class ArticleViewSets(GenericViewSet):
         )
 
         ARTICLE_INFO['data'] = page.get_paginated_data(serializers.data)
-        return Response(ARTICLE_INFO, 200)
+        return HttpResponse(json.dumps(ARTICLE_INFO, ensure_ascii=False), status=200)
 
     @action(detail=False,
             methods=['GET'],
@@ -161,7 +162,7 @@ class ArticleViewSets(GenericViewSet):
         try:
             article_id = uuid.UUID(request.query_params['id'])
         except (KeyError, ValueError, AttributeError):
-            return Response(PARAM_ERROR, 200)
+            return HttpResponse(json.dumps(PARAM_ERROR, ensure_ascii=False), status=200)
         try:
             if request.user.is_anonymous:
                 instance = self.queryset.get(
@@ -174,11 +175,11 @@ class ArticleViewSets(GenericViewSet):
                     user_id=request.user.id
                 )
         except Article.DoesNotExist:
-            return Response(PARAM_ERROR, 200)
+            return HttpResponse(json.dumps(PARAM_ERROR, ensure_ascii=False), status=200)
 
         serializers = self.serializer_class(instance=instance)
         ARTICLE_INFO['data'] = serializers.data
-        return Response(ARTICLE_INFO, 200)
+        return HttpResponse(json.dumps(ARTICLE_INFO), status=200)
 
 
 class CommentPagination(PageNumberPagination):
@@ -205,7 +206,7 @@ class CommentViewSets(GenericViewSet):
         try:
             article_id = uuid.UUID(data['article_id'])
         except (KeyError, ValueError, AttributeError):
-            return Response(PARAM_ERROR, 200)
+            return HttpResponse(json.dumps(PARAM_ERROR, ensure_ascii=False), status=200)
         page = self.pagination_class()
         comments = self.queryset.filter(
             article_id=article_id
@@ -217,7 +218,7 @@ class CommentViewSets(GenericViewSet):
         )
 
         COMMENT_INFO['data'] = page.get_paginated_data(serializers.data)
-        return Response(COMMENT_INFO, 200)
+        return HttpResponse(json.dumps(COMMENT_INFO, ensure_ascii=False), status=200)
 
     def create(self, request):
         request.data['user_id'] = request.user.id
@@ -226,7 +227,7 @@ class CommentViewSets(GenericViewSet):
         serializers.save()
 
         COMMENT_INFO['data'] = serializers.data
-        return Response(COMMENT_INFO, 200)
+        return HttpResponse(json.dumps(COMMENT_INFO, ensure_ascii=False), status=200)
 
     @staticmethod
     def put(request):
@@ -236,13 +237,13 @@ class CommentViewSets(GenericViewSet):
         serializers.save()
 
         COMMENT_INFO['data'] = serializers.data
-        return Response(COMMENT_INFO, 200)
+        return HttpResponse(json.dumps(COMMENT_INFO, ensure_ascii=False), status=200)
 
     def delete(self, request):
         try:
             comment_id = uuid.UUID(request.data['id'])
         except (KeyError, ValueError, AttributeError):
-            return Response(PARAM_ERROR, 200)
+            return HttpResponse(json.dumps(PARAM_ERROR, ensure_ascii=False), status=200)
 
         if self.queryset.filter(
                 id=comment_id,
@@ -252,4 +253,4 @@ class CommentViewSets(GenericViewSet):
                 comment_id=request.data['id']
             ).delete()
 
-        return Response(SUCCESS, 200)
+        return HttpResponse(json.dumps(SUCCESS, ensure_ascii=False), status=200)
