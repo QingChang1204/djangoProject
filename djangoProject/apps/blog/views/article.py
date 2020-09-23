@@ -1,7 +1,5 @@
 import json
-import uuid
 from collections import OrderedDict
-
 from django.http import HttpResponse
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
@@ -36,7 +34,7 @@ class ArticleViewSets(GenericViewSet):
 
     def get_object(self):
         try:
-            instance_id = uuid.UUID(self.request.data.pop('id', None))
+            instance_id = int(self.request.data.pop('id', None))
         except (ValueError, TypeError, AttributeError):
             raise Article.DoesNotExist
         instance = self.queryset.get(
@@ -160,7 +158,7 @@ class ArticleViewSets(GenericViewSet):
             authentication_classes=[JWTAuthentication])
     def get_article(self, request):
         try:
-            article_id = uuid.UUID(request.query_params['id'])
+            article_id = int(request.query_params['id'])
         except (KeyError, ValueError, AttributeError):
             return HttpResponse(json.dumps(PARAM_ERROR, ensure_ascii=False), status=200)
         try:
@@ -204,7 +202,7 @@ class CommentViewSets(GenericViewSet):
     def list(self, request):
         data = request.query_params
         try:
-            article_id = uuid.UUID(data['article_id'])
+            article_id = int(data['article_id'])
         except (KeyError, ValueError, AttributeError):
             return HttpResponse(json.dumps(PARAM_ERROR, ensure_ascii=False), status=200)
         page = self.pagination_class()
@@ -241,7 +239,7 @@ class CommentViewSets(GenericViewSet):
 
     def delete(self, request):
         try:
-            comment_id = uuid.UUID(request.data['id'])
+            comment_id = int(request.data['id'])
         except (KeyError, ValueError, AttributeError):
             return HttpResponse(json.dumps(PARAM_ERROR, ensure_ascii=False), status=200)
 
