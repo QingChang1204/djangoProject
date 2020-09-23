@@ -51,8 +51,8 @@ class AttachedPictureSerializers(serializers.ModelSerializer):
         self.old_instance_id_list = []
         self.new_instance_id_list = []
         self.__class__.old_instance_id_list = self.old_instance_id_list
-        self.attached_table = kwargs.pop('attached_table')
-        self.attached_id = kwargs.pop('attached_id')
+        self.attached_table = kwargs.pop('attached_table', None)
+        self.attached_id = kwargs.pop('attached_id', None)
         super(AttachedPictureSerializers, self).__init__(*args, **kwargs)
 
     def get_old_instance_id_list(self):
