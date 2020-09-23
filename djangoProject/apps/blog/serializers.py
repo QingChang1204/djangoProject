@@ -70,9 +70,6 @@ class AttachedPictureSerializers(serializers.ModelSerializer):
             self.old_instance_id_list.append(pic_id)
             pass
         else:
-            if self.old_instance_id_list:
-                self.remove_old_instance()
-
             instance = self.Meta.model(
                 **validated_data,
                 attached_id=self.attached_id,
