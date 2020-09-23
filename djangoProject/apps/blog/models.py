@@ -1,11 +1,10 @@
 import time
-import uuid
-
 from django.contrib.auth.base_user import AbstractBaseUser
 from django.contrib.auth.models import PermissionsMixin, UserManager
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.core.mail import send_mail
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 import hashids
 
@@ -15,12 +14,6 @@ import hashids
 class NewAbstractUser(AbstractBaseUser, PermissionsMixin):
     username_validator = UnicodeUsernameValidator()
 
-    id = models.UUIDField(
-        primary_key=True,
-        unique=True,
-        default=uuid.uuid4,
-        editable=False
-    )
     username = models.CharField(
         max_length=100,
         unique=True,
@@ -97,12 +90,6 @@ class User(NewAbstractUser):
 
 
 class Category(models.Model):
-    id = models.UUIDField(
-        primary_key=True,
-        unique=True,
-        default=uuid.uuid4,
-        editable=False
-    )
     category = models.CharField(
         verbose_name="目录",
         max_length=100
@@ -114,12 +101,6 @@ class Category(models.Model):
 
 
 class Article(models.Model):
-    id = models.UUIDField(
-        primary_key=True,
-        unique=True,
-        default=uuid.uuid4,
-        editable=False
-    )
     user = models.ForeignKey(
         User,
         db_constraint=False,
@@ -131,7 +112,9 @@ class Article(models.Model):
         on_delete=models.DO_NOTHING,
         null=True
     )
-    content = models.TextField(verbose_name="内容")
+    content = models.TextField(
+        verbose_name="内容"
+    )
     title = models.CharField(
         verbose_name="文章标题",
         max_length=150
@@ -158,31 +141,45 @@ class Article(models.Model):
         return self.title
 
 
-class ArticleImage(models.Model):
-    id = models.UUIDField(
-        primary_key=True,
-        unique=True,
-        default=uuid.uuid4,
-        editable=False
+class ImageManager(models.Manager):
+    def get_all_queryset(self):
+        return super(ImageManager, self).get_queryset()
+
+    def get_queryset(self):
+        return super(ImageManager, self).get_queryset().filter(status=True)
+
+    def stealth_delete(self, attached_id, attached_table, old_id_list):
+        self.get_all_queryset().filter(
+            ~Q(id__in=old_id_list),
+            attached_id=attached_id,
+            attached_table=attached_table,
+            status=True
+        ).update(
+            status=False
+        )
+
+
+class AttachedPicture(models.Model):
+    attached_id = models.IntegerField(
+        verbose_name="附属ID"
     )
-    article = models.ForeignKey(
-        Article,
-        db_constraint=False,
-        on_delete=models.DO_NOTHING,
-        related_name="article_image"
+    attached_table = models.CharField(
+        verbose_name="附属表",
+        max_length=20
     )
     image = models.URLField(
         verbose_name="文章图片"
     )
+    status = models.BooleanField(
+        default=True
+    )
+    objects = ImageManager()
+
+    class Meta:
+        index_together = ["attached_id", "attached_table"]
 
 
 class Comment(models.Model):
-    id = models.UUIDField(
-        primary_key=True,
-        unique=True,
-        default=uuid.uuid4,
-        editable=False
-    )
     article = models.ForeignKey(
         Article,
         db_constraint=False,
@@ -204,17 +201,12 @@ class Comment(models.Model):
 
 
 class Reply(models.Model):
-    id = models.UUIDField(
-        primary_key=True,
-        unique=True,
-        default=uuid.uuid4,
-        editable=False
-    )
     comment = models.ForeignKey(
         Comment,
         db_constraint=False,
         on_delete=models.DO_NOTHING,
-        related_name="reply"
+        related_name="replies",
+        related_query_name="reply"
     )
     user = models.ForeignKey(
         User,
@@ -235,10 +227,3 @@ class Reply(models.Model):
         verbose_name="创建时间",
         auto_now_add=True
     )
-
-    def __str__(self):
-        return "{}回复{}: {}".format(
-            self.user.username,
-            self.to_user.username,
-            self.content
-        )

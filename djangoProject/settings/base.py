@@ -73,6 +73,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'blog.middleware.PreventMiddleware'
 ]
 
 ROOT_URLCONF = 'djangoProject.urls'
@@ -173,6 +174,7 @@ USE_L10N = True
 
 USE_TZ = False
 
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
@@ -189,7 +191,7 @@ syslog_address = 'log/'
 if not os.path.exists(syslog_address):
     os.mkdir(syslog_address)
 
-syslog_format = '%(asctime)s [service=Aliyun][%(name)s] %(levelname)s [{hostname}  %(process)d] ' \
+syslog_format = '%(asctime)s [%(name)s] %(levelname)s [{hostname}  %(process)d] ' \
                 '[%(pathname)s:%(lineno)d] - %(message)s'.format(hostname=hostname)
 
 LOGGING = {
@@ -262,6 +264,10 @@ LOGGING = {
         },
     }
 }
+AUTHENTICATION_BACKENDS = ('blog.views.auth.CustomBackend',)
 
 MIGRATE_APPS = ['blog']
 AUTH_USER_MODEL = 'blog.User'
+APPEND_SLASH = False
+
+DJANGO_REDIS_CONNECTION_FACTORY = "blog.utils.DecodeConnectionFactory"

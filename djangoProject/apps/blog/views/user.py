@@ -1,9 +1,10 @@
+import json
 from django.contrib.auth import authenticate
 from django.db import IntegrityError
+from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.response import Response
 import re
 from rest_framework.viewsets import GenericViewSet
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -26,7 +27,7 @@ class UserViewSets(GenericViewSet):
             instance=request.user
         )
         USER_INFO['data'] = serializer.data
-        return Response(USER_INFO, 200)
+        return HttpResponse(json.dumps(USER_INFO, ensure_ascii=False), status=200)
 
     @action(detail=False,
             methods=['POST'],
@@ -44,18 +45,18 @@ class UserViewSets(GenericViewSet):
                 )
                 blog_user = blog_user.save()
             else:
-                return Response(EMAIL_FORMAT_ERROR, 200)
+                return HttpResponse(json.dumps(EMAIL_FORMAT_ERROR, ensure_ascii=False), status=200)
         except IntegrityError:
-            return Response(EXISTED_USER_NAME, 200)
+            return HttpResponse(json.dumps(EXISTED_USER_NAME, ensure_ascii=False), status=200)
         except KeyError:
-            return Response(PARAM_ERROR, 200)
+            return HttpResponse(json.dumps(PARAM_ERROR, ensure_ascii=False), status=200)
         else:
             token = RefreshToken.for_user(blog_user)
             TOKEN['data'] = {
                 'access_token': "Bearer " + str(token.access_token),
                 'refresh': "Bearer " + str(token)
             }
-            return Response(TOKEN, 200)
+            return HttpResponse(json.dumps(TOKEN, ensure_ascii=False), status=200)
 
     @action(detail=False,
             methods=['POST'],
@@ -69,13 +70,13 @@ class UserViewSets(GenericViewSet):
                 blog_user.is_valid(raise_exception=True)
                 blog_user.save()
             else:
-                return Response(EMAIL_FORMAT_ERROR, 200)
+                return HttpResponse(json.dumps(EMAIL_FORMAT_ERROR, ensure_ascii=False), status=200)
         except IntegrityError:
-            return Response(EXISTED_USER_NAME, 200)
+            return HttpResponse(json.dumps(EXISTED_USER_NAME, ensure_ascii=False), status=200)
         except KeyError:
-            return Response(PARAM_ERROR, 200)
+            return HttpResponse(json.dumps(PARAM_ERROR, ensure_ascii=False), status=200)
         else:
-            return Response(SUCCESS, 200)
+            return HttpResponse(json.dumps(SUCCESS, ensure_ascii=False), status=200)
 
     @action(detail=False,
             methods=['POST'],
@@ -94,6 +95,6 @@ class UserViewSets(GenericViewSet):
                 'access_token': "Bearer " + str(token.access_token),
                 'refresh': "Bearer " + str(token)
             }
-            return Response(TOKEN, 200)
+            return HttpResponse(json.dumps(TOKEN, ensure_ascii=False), status=200)
         else:
-            return Response(LOG_FAIL, 200)
+            return HttpResponse(json.dumps(LOG_FAIL), status=200)

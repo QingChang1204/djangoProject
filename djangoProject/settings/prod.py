@@ -4,9 +4,9 @@ try:
     from .local_settings import *
 except ImportError:
     DATABASES = DATABASES
-    CACHES['default']['LOCATION'] = CASH_URL_PROD
 else:
     DATABASES = DATABASES_PROD
+    CACHES = CACHES_PROD
 
 
 # Separate Migrations
