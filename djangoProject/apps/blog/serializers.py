@@ -5,7 +5,6 @@ from blog.utils import search
 
 class BlogUserSerializers(serializers.ModelSerializer):
     # 设计新的用户序列化器
-
     class Meta:
         model = User
         fields = [
@@ -50,9 +49,14 @@ class AttachedPictureSerializers(serializers.ModelSerializer):
 
     def __init__(self, *args, **kwargs):
         self.old_instance_id_list = []
-        self.attached_table = kwargs.pop('attached_table', "")
-        self.attached_id = kwargs.pop('attached_id', 0)
+        self.new_instance_id_list = []
+        self.__class__.old_instance_id_list = self.old_instance_id_list
+        self.attached_table = kwargs.pop('attached_table', None)
+        self.attached_id = kwargs.pop('attached_id', None)
         super(AttachedPictureSerializers, self).__init__(*args, **kwargs)
+
+    def get_old_instance_id_list(self):
+        return self.old_instance_id_list
 
     class Meta:
         model = AttachedPicture
@@ -75,15 +79,17 @@ class AttachedPictureSerializers(serializers.ModelSerializer):
                 attached_table=self.attached_table
             )
             instance.save()
+            self.new_instance_id_list.append(instance.id)
             return instance
 
     def remove_old_instance(self):
         self.Meta.model.objects.stealth_delete(
             attached_id=self.attached_id,
             attached_table=self.attached_table,
-            old_id_list=self.old_instance_id_list
+            old_id_list=self.old_instance_id_list + self.new_instance_id_list
         )
         self.old_instance_id_list = []
+        self.new_instance_id_list = []
 
 
 class SimpleArticleSerializers(serializers.ModelSerializer):
@@ -140,7 +146,7 @@ class ArticleSerializers(SimpleArticleSerializers):
         if instance.tag is not None:
             search_word += instance.tag
         search.handle_search(instance.id, search_word, instance.publish_status)
-        if self.initial_data.get('images'):
+        if self.initial_data.get('images', False):
             image_serializers = AttachedPictureSerializers(
                 data=self.initial_data['images'],
                 many=True,
@@ -149,11 +155,13 @@ class ArticleSerializers(SimpleArticleSerializers):
             )
             image_serializers.is_valid(raise_exception=True)
             image_serializers.save()
+            if image_serializers.child.get_old_instance_id_list:
+                image_serializers.child.remove_old_instance()
+
         return instance
 
     def update(self, instance, validated_data):
-
-        if self.initial_data.get('images'):
+        if self.initial_data.get('images', False):
             image_serializers = AttachedPictureSerializers(
                 data=self.initial_data['images'],
                 many=True,
@@ -162,6 +170,8 @@ class ArticleSerializers(SimpleArticleSerializers):
             )
             image_serializers.is_valid(raise_exception=True)
             image_serializers.save()
+            if image_serializers.child.get_old_instance_id_list:
+                image_serializers.child.remove_old_instance()
 
         for k, v in validated_data.items():
             instance.__setattr__(k, v)
