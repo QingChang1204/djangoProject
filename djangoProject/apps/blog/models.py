@@ -4,6 +4,7 @@ from django.contrib.auth.models import PermissionsMixin, UserManager
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.core.mail import send_mail
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 import hashids
 
@@ -147,22 +148,24 @@ class ImageManager(models.Manager):
     def get_queryset(self):
         return super(ImageManager, self).get_queryset().filter(status=True)
 
-    def stealth_delete(self, instance):
+    def stealth_delete(self, attached_id, attached_table, old_id_list):
         self.get_all_queryset().filter(
-            article=instance,
+            ~Q(id__in=old_id_list),
+            attached_id=attached_id,
+            attached_table=attached_table,
             status=True
         ).update(
             status=False
         )
 
 
-class ArticleImage(models.Model):
-    article = models.ForeignKey(
-        Article,
-        db_constraint=False,
-        on_delete=models.DO_NOTHING,
-        related_name="article_images",
-        related_query_name="image"
+class AttachedPicture(models.Model):
+    attached_id = models.IntegerField(
+        verbose_name="附属ID"
+    )
+    attached_table = models.CharField(
+        verbose_name="附属表",
+        max_length=20
     )
     image = models.URLField(
         verbose_name="文章图片"
@@ -171,6 +174,9 @@ class ArticleImage(models.Model):
         default=True
     )
     objects = ImageManager()
+
+    class Meta:
+        index_together = ["attached_id", "attached_table"]
 
 
 class Comment(models.Model):

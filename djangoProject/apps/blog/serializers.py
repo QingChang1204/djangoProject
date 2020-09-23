@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from blog.models import User, Article, Category, Reply, Comment, ArticleImage
+from blog.models import User, Article, Category, Reply, Comment, AttachedPicture
 from blog.utils import search
 
 
@@ -45,32 +45,71 @@ class CategorySerializers(serializers.ModelSerializer):
         return instance
 
 
-class ArticleImageSerializers(serializers.ModelSerializer):
+class AttachedPictureSerializers(serializers.ModelSerializer):
+    id = serializers.IntegerField(required=False, allow_null=True)
+
+    def __init__(self, *args, **kwargs):
+        self.old_instance_id_list = []
+        self.attached_table = kwargs.pop('attached_table', "")
+        self.attached_id = kwargs.pop('attached_id', 0)
+        super(AttachedPictureSerializers, self).__init__(*args, **kwargs)
+
     class Meta:
-        model = ArticleImage
+        model = AttachedPicture
         fields = [
             'image', 'id'
         ]
 
     def create(self, validated_data):
-        instance = self.Meta.model(
-            **validated_data,
-            article_id=self.context['article_id']
+        pic_id = validated_data.pop('id', None)
+        if pic_id is not None:
+            self.old_instance_id_list.append(pic_id)
+            pass
+        else:
+            if self.old_instance_id_list:
+                self.remove_old_instance()
+
+            instance = self.Meta.model(
+                **validated_data,
+                attached_id=self.attached_id,
+                attached_table=self.attached_table
+            )
+            instance.save()
+            return instance
+
+    def remove_old_instance(self):
+        self.Meta.model.objects.stealth_delete(
+            attached_id=self.attached_id,
+            attached_table=self.attached_table,
+            old_id_list=self.old_instance_id_list
         )
-        instance.save()
-        return instance
+        self.old_instance_id_list = []
 
 
 class SimpleArticleSerializers(serializers.ModelSerializer):
     icon = serializers.URLField(source='user.icon', read_only=True)
     username = serializers.CharField(source='user.username', read_only=True)
     datetime_created = serializers.DateTimeField(format='%Y年%m月%d日 %H时:%M分:%S秒', read_only=True)
-    article_images = ArticleImageSerializers(many=True, read_only=True)
+    attached_pictures = serializers.SerializerMethodField()
+
+    @staticmethod
+    def get_attached_pictures(obj):
+        instance = AttachedPicture.objects.filter(
+            attached_table="article",
+            attached_id=obj.id
+        ).all()
+
+        serializer = AttachedPictureSerializers(
+            instance=instance,
+            many=True
+        )
+
+        return serializer.data
 
     class Meta:
         model = Article
         fields = [
-            'id', 'title', 'datetime_created', 'icon', 'username', 'article_images'
+            'id', 'title', 'datetime_created', 'icon', 'username', 'attached_pictures'
         ]
         read_only_fields = ['id', 'title', 'datetime_created']
 
@@ -102,10 +141,11 @@ class ArticleSerializers(SimpleArticleSerializers):
             search_word += instance.tag
         search.handle_search(instance.id, search_word, instance.publish_status)
         if self.initial_data.get('images'):
-            image_serializers = ArticleImageSerializers(
+            image_serializers = AttachedPictureSerializers(
                 data=self.initial_data['images'],
-                context={"article_id": instance.id},
-                many=True
+                many=True,
+                attached_table="article",
+                attached_id=instance.id
             )
             image_serializers.is_valid(raise_exception=True)
             image_serializers.save()
@@ -114,11 +154,11 @@ class ArticleSerializers(SimpleArticleSerializers):
     def update(self, instance, validated_data):
 
         if self.initial_data.get('images'):
-            ArticleImage.objects.stealth_delete(instance)
-            image_serializers = ArticleImageSerializers(
+            image_serializers = AttachedPictureSerializers(
                 data=self.initial_data['images'],
-                context={"article_id": instance.id},
-                many=True
+                many=True,
+                attached_table="article",
+                attached_id=instance.id
             )
             image_serializers.is_valid(raise_exception=True)
             image_serializers.save()
