@@ -1,6 +1,5 @@
 from rest_framework import serializers
 from blog.models import User, Article, Category, Reply, Comment, AttachedPicture
-from blog.utils import search
 
 
 class BlogUserSerializers(serializers.ModelSerializer):
@@ -139,10 +138,6 @@ class ArticleSerializers(SimpleArticleSerializers):
             category_id=self.context['category_id']
         )
         instance.save()
-        search_word = instance.content + instance.title
-        if instance.tag is not None:
-            search_word += instance.tag
-        search.handle_search(instance.id, search_word, instance.publish_status)
         if self.initial_data.get('images', False):
             image_serializers = AttachedPictureSerializers(
                 data=self.initial_data['images'],
@@ -173,10 +168,6 @@ class ArticleSerializers(SimpleArticleSerializers):
         for k, v in validated_data.items():
             instance.__setattr__(k, v)
         instance.save()
-        search_word = instance.content + instance.title
-        if instance.tag is not None:
-            search_word += instance.tag
-        search.handle_search(instance.id, search_word, instance.publish_status)
         return instance
 
 

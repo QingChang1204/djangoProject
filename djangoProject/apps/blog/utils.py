@@ -9,7 +9,7 @@ from django_redis.pool import ConnectionFactory
 from blog.search import SearchByEs
 from aliyunsdkcore.request import RpcRequest
 from aliyunsdkcore.client import AcsClient
-from models import VerifyCode
+from blog.models import VerifyCode
 
 logger = logging.getLogger(__name__)
 search = SearchByEs()
