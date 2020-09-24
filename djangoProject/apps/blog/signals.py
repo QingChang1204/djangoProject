@@ -1,6 +1,5 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-
 from blog.models import Article
 from blog.utils import search
 
