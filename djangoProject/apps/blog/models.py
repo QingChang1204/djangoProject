@@ -105,13 +105,17 @@ class Article(models.Model):
     user = models.ForeignKey(
         User,
         db_constraint=False,
-        on_delete=models.DO_NOTHING
+        on_delete=models.DO_NOTHING,
+        related_name='articles',
+        related_query_name='article'
     )
     category = models.ForeignKey(
         Category,
         db_constraint=False,
         on_delete=models.DO_NOTHING,
-        null=True
+        null=True,
+        related_name='articles',
+        related_query_name='article'
     )
     content = models.TextField(
         verbose_name="内容"
@@ -184,12 +188,16 @@ class Comment(models.Model):
     article = models.ForeignKey(
         Article,
         db_constraint=False,
-        on_delete=models.DO_NOTHING
+        on_delete=models.DO_NOTHING,
+        related_name='comments',
+        related_query_name='comment'
     )
     user = models.ForeignKey(
         User,
         db_constraint=False,
-        on_delete=models.DO_NOTHING
+        on_delete=models.DO_NOTHING,
+        related_name='comments',
+        related_query_name='comment'
     )
     content = models.CharField(
         verbose_name="评论内容",
@@ -199,6 +207,9 @@ class Comment(models.Model):
         verbose_name="创建时间",
         auto_now_add=True
     )
+
+    class Meta:
+        ordering = ["-datetime_created", ]
 
 
 class Reply(models.Model):
@@ -212,13 +223,16 @@ class Reply(models.Model):
     user = models.ForeignKey(
         User,
         db_constraint=False,
-        on_delete=models.DO_NOTHING
+        on_delete=models.DO_NOTHING,
+        related_name="replies",
+        related_query_name="reply"
     )
     to_user = models.ForeignKey(
         User,
         db_constraint=False,
         on_delete=models.DO_NOTHING,
-        related_name="to_user"
+        related_name="to_replies",
+        related_query_name="to_reply"
     )
     content = models.CharField(
         verbose_name="回复内容",
