@@ -1,6 +1,4 @@
-from collections import OrderedDict
 from rest_framework.decorators import action
-from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.viewsets import GenericViewSet
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -9,18 +7,7 @@ from blog.models import Article, Comment, Reply
 from blog.serializers import ArticleSerializers, CategorySerializers, CommentSerializers, ReplySerializers, \
     SimpleArticleSerializers
 from blog.utils import search, custom_response
-
-
-class ArticlePagination(PageNumberPagination):
-    page_size = 10
-
-    def get_paginated_data(self, data):
-        return OrderedDict([
-            ('count', self.page.paginator.count),
-            ('next', self.get_next_link()),
-            ('previous', self.get_previous_link()),
-            ('results', data)
-        ])
+from blog.pagination import TenPagination, TwentyPagination
 
 
 class ArticleViewSets(GenericViewSet):
@@ -28,7 +15,7 @@ class ArticleViewSets(GenericViewSet):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
     serializer_class = ArticleSerializers
-    pagination_class = ArticlePagination
+    pagination_class = TenPagination
 
     def get_object(self):
         try:
@@ -178,24 +165,12 @@ class ArticleViewSets(GenericViewSet):
         return custom_response(ARTICLE_INFO, 200)
 
 
-class CommentPagination(PageNumberPagination):
-    page_size = 20
-
-    def get_paginated_data(self, data):
-        return OrderedDict([
-            ('count', self.page.paginator.count),
-            ('next', self.get_next_link()),
-            ('previous', self.get_previous_link()),
-            ('results', data)
-        ])
-
-
 class CommentViewSets(GenericViewSet):
     queryset = Comment.objects.all()
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
     serializer_class = CommentSerializers
-    pagination_class = CommentPagination
+    pagination_class = TwentyPagination
 
     def list(self, request):
         data = request.query_params
