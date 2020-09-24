@@ -90,3 +90,6 @@ class SendSMS:
             return True, return_code
         else:
             return False, return_code
+
+
+send_sms = SendSMS()

@@ -231,9 +231,18 @@ class Reply(models.Model):
 
 
 class VerifyCode(models.Model):
-    phone = models.CharField(max_length=11, verbose_name="手机号")
-    code = models.CharField(max_length=6, verbose_name="验证码")
-    datetime_sent = models.DateTimeField(auto_now_add=True, verbose_name="发送时间")
+    phone = models.CharField(
+        max_length=11,
+        verbose_name="手机号"
+    )
+    code = models.CharField(
+        max_length=6,
+        verbose_name="验证码"
+    )
+    datetime_sent = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="发送时间"
+    )
 
     def code_expired(self):
         expiration_date = self.datetime_sent \
