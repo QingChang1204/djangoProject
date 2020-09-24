@@ -11,5 +11,6 @@ else:
     CELERY_RESULT_BACKEND = CELERY_RESULT_BACKEND_PROD
 
 
+DEBUG = False
 # Separate Migrations
 MIGRATION_MODULES = {app: '%s.prod_migrations' % app for app in MIGRATE_APPS}
