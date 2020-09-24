@@ -60,19 +60,12 @@ class SendSMS:
                                  )
         return_code = json.loads(response.decode('utf-8')).get('Code', 0)
         if return_code == 'OK':
-            code_info = VerifyCode.objects.filter(
-                email=phone,
-            ).first()
-            if code_info is None:
-                VerifyCode.objects.create(
-                    email=phone,
-                    code=code,
-                    sent=timezone.now()
-                )
-            else:
-                code_info.code = code
-                code_info.sent = timezone.now()
-                code_info.save()
+            code_info, create_status = VerifyCode.objects.get_or_create(
+                phone=phone,
+            )
+            code_info.code = code
+            code_info.sent = timezone.now()
+            code_info.save()
             return True, return_code
         else:
             return False, return_code
