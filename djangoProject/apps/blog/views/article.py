@@ -172,25 +172,6 @@ class CommentViewSets(GenericViewSet):
     serializer_class = CommentSerializers
     pagination_class = TwentyPagination
 
-    def list(self, request):
-        data = request.query_params
-        try:
-            article_id = int(data['article_id'])
-        except (KeyError, ValueError, AttributeError):
-            return custom_response(PARAM_ERROR, 200)
-        page = self.pagination_class()
-        comments = self.queryset.filter(
-            article_id=article_id
-        ).order_by('-datetime_created').all()
-        page_list = page.paginate_queryset(comments, request, view=self)
-        serializers = self.serializer_class(
-            instance=page_list,
-            many=True
-        )
-
-        COMMENT_INFO['data'] = page.get_paginated_data(serializers.data)
-        return custom_response(COMMENT_INFO, 200)
-
     def create(self, request):
         request.data['user_id'] = request.user.id
         serializers = self.serializer_class(data=request.data)

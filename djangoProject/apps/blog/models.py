@@ -208,6 +208,9 @@ class Comment(models.Model):
         auto_now_add=True
     )
 
+    class Meta:
+        ordering = ["-datetime_created", ]
+
 
 class Reply(models.Model):
     comment = models.ForeignKey(
