@@ -21,3 +21,4 @@ djangorestframework-simplejwt==4.4.0
 elasticsearch==7.9.1
 elasticsearch-dsl==7.2.1
 django-redis==4.12.1
+aliyun-python-sdk-core-v3==2.13.11

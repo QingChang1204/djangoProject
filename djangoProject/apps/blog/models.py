@@ -1,3 +1,4 @@
+import datetime
 import time
 from django.contrib.auth.base_user import AbstractBaseUser
 from django.contrib.auth.models import PermissionsMixin, UserManager
@@ -227,3 +228,17 @@ class Reply(models.Model):
         verbose_name="创建时间",
         auto_now_add=True
     )
+
+
+class VerifyCode(models.Model):
+    phone = models.CharField(max_length=11, verbose_name="手机号")
+    code = models.CharField(max_length=6, verbose_name="验证码")
+    datetime_sent = models.DateTimeField(auto_now_add=True, verbose_name="发送时间")
+
+    def code_expired(self):
+        expiration_date = self.datetime_sent \
+                          + datetime.timedelta(minutes=20)
+        return expiration_date <= timezone.now()
+
+    def code_invalid(self, code):
+        return self.code != code
