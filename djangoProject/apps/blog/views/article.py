@@ -5,7 +5,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from blog.errcode import ARTICLE_INFO, PARAM_ERROR, SUCCESS, COMMENT_INFO
 from blog.models import Article, Comment, Reply
 from blog.serializers import ArticleSerializers, CategorySerializers, CommentSerializers, ReplySerializers, \
-    SimpleArticleSerializers
+    SimpleArticleSerializers, MyArticleSerializers
 from blog.utils import search, custom_response
 from blog.pagination import TenPagination, TwentyPagination
 
@@ -34,7 +34,7 @@ class ArticleViewSets(GenericViewSet):
             user_id=request.user.id
         ).order_by('-datetime_created').all()
         page_list = page.paginate_queryset(articles, request, view=self)
-        serializers = self.serializer_class(
+        serializers = MyArticleSerializers(
             instance=page_list,
             many=True
         )

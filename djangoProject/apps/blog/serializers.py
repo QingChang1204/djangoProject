@@ -88,23 +88,7 @@ class AttachedPictureSerializers(serializers.ModelSerializer):
         self.new_instance_id_list = []
 
 
-class SimpleArticleSerializers(serializers.ModelSerializer):
-    user_info = serializers.SerializerMethodField(read_only=True)
-    datetime_created = serializers.DateTimeField(format='%Y年%m月%d日 %H时:%M分:%S秒', read_only=True)
-    attached_pictures = serializers.SerializerMethodField()
-
-    @staticmethod
-    def get_user_info(obj):
-        instance = User.objects.filter(
-            id=obj.user_id
-        ).only('icon', 'username').first()
-        if instance is not None:
-            return {
-                "icon": instance.icon,
-                "username": instance.username
-            }
-        else:
-            return None
+class ArticleSerializersMixin:
 
     @staticmethod
     def get_attached_pictures(obj):
@@ -120,10 +104,40 @@ class SimpleArticleSerializers(serializers.ModelSerializer):
 
         return serializer.data
 
+    @staticmethod
+    def get_category_name(obj):
+        instance = Category.objects.filter(
+            id=obj.category_id
+        ).only('category').first()
+        if instance is not None:
+            return instance.category
+        else:
+            return None
+
+
+class SimpleArticleSerializers(serializers.ModelSerializer, ArticleSerializersMixin):
+    attached_pictures = serializers.SerializerMethodField()
+    category_name = serializers.SerializerMethodField(read_only=True)
+    user_info = serializers.SerializerMethodField(read_only=True)
+    datetime_created = serializers.DateTimeField(format='%Y年%m月%d日 %H时:%M分:%S秒', read_only=True)
+
+    @staticmethod
+    def get_user_info(obj):
+        instance = User.objects.filter(
+            id=obj.user_id
+        ).only('icon', 'username').first()
+        if instance is not None:
+            return {
+                "icon": instance.icon,
+                "username": instance.username
+            }
+        else:
+            return None
+
     class Meta:
         model = Article
         fields = [
-            'id', 'user_info', 'title', 'attached_pictures', 'datetime_created'
+            'id', 'user_info', 'title', 'category_name', 'attached_pictures', 'datetime_created'
         ]
         read_only_fields = ['id', 'title', 'datetime_created']
 
@@ -198,7 +212,7 @@ class CommentSerializers(serializers.ModelSerializer):
         model = Comment
         fields = [
             'id', 'user_id', 'username', 'article_id',
-            'content', 'replies',  'datetime_created'
+            'content', 'replies', 'datetime_created'
         ]
         read_only_fields = ['id']
 
@@ -210,21 +224,30 @@ class CommentSerializers(serializers.ModelSerializer):
         return instance
 
 
-class ArticleSerializers(SimpleArticleSerializers):
+class MyArticleSerializers(serializers.ModelSerializer, ArticleSerializersMixin):
+    attached_pictures = serializers.SerializerMethodField()
     category_name = serializers.SerializerMethodField(read_only=True)
     datetime_update = serializers.DateTimeField(format='%Y年%m月%d日 %H时:%M分:%S秒', read_only=True)
     publish_status = serializers.BooleanField(write_only=True)
     comments = CommentSerializers(many=True, read_only=True)
+    datetime_created = serializers.DateTimeField(format='%Y年%m月%d日 %H时:%M分:%S秒', read_only=True)
 
-    @staticmethod
-    def get_category_name(obj):
-        instance = Category.objects.filter(
-            id=obj.category_id
-        ).only('category').first()
-        if instance is not None:
-            return instance.category
-        else:
-            return None
+    class Meta:
+        model = Article
+        fields = [
+            'id', 'title', 'attached_pictures',
+            'category_name', 'publish_status', 'content',
+            'tag', 'datetime_created', 'datetime_update', 'comments'
+        ]
+        read_only_fields = fields
+
+
+class ArticleSerializers(SimpleArticleSerializers, ArticleSerializersMixin):
+    attached_pictures = serializers.SerializerMethodField()
+    category_name = serializers.SerializerMethodField(read_only=True)
+    datetime_update = serializers.DateTimeField(format='%Y年%m月%d日 %H时:%M分:%S秒', read_only=True)
+    publish_status = serializers.BooleanField(write_only=True)
+    comments = CommentSerializers(many=True, read_only=True)
 
     def __init__(self, *args, **kwargs):
         self.Meta = super(ArticleSerializers, self).Meta
