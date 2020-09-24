@@ -65,10 +65,6 @@ class User(NewAbstractUser):
         verbose_name="用户头像",
         null=True
     )
-    description = models.TextField(
-        verbose_name="用户描述",
-        null=True
-    )
     phone = models.CharField(
         verbose_name="手机号",
         null=True,
