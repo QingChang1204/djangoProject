@@ -41,7 +41,7 @@ class SearchByEs:
             "match_phrase", publish_status=True
         ).sort(
             '-_id'
-        )[(page - 1) * page_size: page * page_size]
+        ).source('_id')[(page - 1) * page_size: page * page_size]
         res_count = search.count()
         res = search.execute()
 
