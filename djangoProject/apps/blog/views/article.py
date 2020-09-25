@@ -28,6 +28,15 @@ class ArticleViewSets(GenericViewSet):
         )
         return instance
 
+    @staticmethod
+    def get_category(data, context):
+        if data.get('category'):
+            category = CategorySerializers(data=data)
+            category.is_valid(raise_exception=True)
+            category = category.save()
+            context['category_id'] = category.id
+        return context
+
     def list(self, request):
         page = self.pagination_class()
         articles = self.queryset.filter(
@@ -44,16 +53,12 @@ class ArticleViewSets(GenericViewSet):
 
     def create(self, request):
         # 序列化器通过上下文兼容外键关系
-        category = CategorySerializers(data=request.data)
-        category.is_valid(raise_exception=True)
-        category = category.save()
+        context = {"user_id": request.user.id}
+        context = self.get_category(request.data, context)
 
         article = self.serializer_class(
             data=request.data,
-            context={
-                "user_id": request.user.id,
-                "category_id": category.id
-            })
+            context=context)
         article.is_valid(raise_exception=True)
         article.save()
 
@@ -65,10 +70,14 @@ class ArticleViewSets(GenericViewSet):
             article = self.get_object()
         except Article.DoesNotExist:
             return custom_response(PARAM_ERROR, 200)
+        context = {}
+        context = self.get_category(request.data, context)
+
         serializer = self.serializer_class(
             data=request.data,
             instance=article,
-            partial=True
+            partial=True,
+            context=context
         )
         serializer.is_valid(
             raise_exception=True
