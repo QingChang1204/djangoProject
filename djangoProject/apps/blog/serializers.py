@@ -270,6 +270,9 @@ class ArticleSerializers(SimpleArticleSerializers, ArticleSerializersMixin):
             if image_serializers.child.get_old_instance_id_list:
                 image_serializers.child.remove_old_instance()
 
+        if self.context.get('category_id', False):
+            instance.category_id = self.context.get('category_id')
+
         for k, v in validated_data.items():
             instance.__setattr__(k, v)
         instance.save()
