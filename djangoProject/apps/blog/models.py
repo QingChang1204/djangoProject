@@ -149,12 +149,20 @@ class ImageManager(models.Manager):
     def get_queryset(self):
         return super(ImageManager, self).get_queryset().filter(status=True)
 
-    def stealth_delete(self, attached_id, attached_table, old_id_list):
+    def stealth_delete(self, attached_id, attached_table, old_id_list=False):
+        filter_objects = Q(
+            Q(attached_id=attached_id) &
+            Q(attached_table=attached_table) &
+            Q(status=True)
+        )
+
+        if old_id_list:
+            filter_objects.add(
+                ~Q(id__in=old_id_list), Q.AND
+            )
+
         self.get_all_queryset().filter(
-            ~Q(id__in=old_id_list),
-            attached_id=attached_id,
-            attached_table=attached_table,
-            status=True
+            filter_objects
         ).update(
             status=False
         )
