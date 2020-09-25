@@ -1,6 +1,7 @@
 from django.utils.deprecation import MiddlewareMixin
 from django_redis import get_redis_connection
-from blog.constants import LIMIT_LOG_MAX_TIME, LIMIT_LOG_EXPIRE_TIME, LOG_IN_URL_PATH, REDIS_KEY
+from blog.constants import LOG_IN_URL_PATH, REDIS_KEY, COMMENT_URL_PATH, \
+    LIMIT_INFO
 from blog.utils import logger, custom_response
 
 
@@ -21,15 +22,17 @@ class RequestLimit:
         key = REDIS_KEY['limit_key'].format(check_type, info)
         request_sum = self.redis.get(key)
         request_sum = int(request_sum) if request_sum else 0
+        limit_max, limit_expired_time = LIMIT_INFO.get(LIMIT_INFO, (5 * 60, 100))
         if request_sum:
-            if request_sum <= LIMIT_LOG_MAX_TIME:
+            if request_sum <= limit_max:
                 request_sum = self.redis.incrby(key, 1)
                 if request_sum == 1:
-                    self.redis.expire(key, LIMIT_LOG_EXPIRE_TIME)
+                    self.redis.expire(key, limit_expired_time)
         else:
-            self.redis.set(key, 1, LIMIT_LOG_EXPIRE_TIME)
-        if not request_sum <= LIMIT_LOG_MAX_TIME:
+            self.redis.set(key, 1, limit_expired_time)
+        if not request_sum <= limit_max:
             logger.info('请求次数超过限制, 校验类型: {}, Redis Key: {}'.format(check_type, info))
+            return False
         return True
 
 
@@ -56,3 +59,12 @@ class PreventMiddleware(MiddlewareMixin):
             request_success = self.check_prevent(user_id, ip, "log_in_limit")
             if not request_success:
                 return custom_response({"detail": "您的访问过于频繁，请稍后再试。"}, 401)
+        elif request.method in ['PUT', 'POST'] and path in COMMENT_URL_PATH:
+            if request.user.is_anonymous:
+                user_id = None
+            else:
+                user_id = request.user.id
+            ip = prevent_client.get_client_ip(request)
+            request_success = self.check_prevent(user_id, ip, "comment_limit")
+            if not request_success:
+                return custom_response({"detail": "您的评论或回复过于频繁，请稍后再试。"}, 401)

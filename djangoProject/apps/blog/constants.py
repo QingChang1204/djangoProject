@@ -1,7 +1,10 @@
-LIMIT_LOG_EXPIRE_TIME = 30 * 60
-LIMIT_LOG_MAX_TIME = 100
 LOG_IN_URL_PATH = ('/api/user/log_in/', '/api/user/sign_up/')
+COMMENT_URL_PATH = ('/api/comment/',)
 
+LIMIT_INFO = {
+    "log_in_limit": (30 * 60, 100),
+    "comment_limit": (10 * 60, 100)
+}
 REDIS_KEY = {
     "limit_key": 'limit_{}_{}'
 }
