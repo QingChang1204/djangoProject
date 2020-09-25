@@ -258,6 +258,7 @@ class ArticleSerializers(SimpleArticleSerializers, ArticleSerializersMixin):
         return instance
 
     def update(self, instance, validated_data):
+        update_fields = []
         if self.initial_data.get('images', False):
             image_serializers = AttachedPictureSerializers(
                 data=self.initial_data['images'],
@@ -274,6 +275,7 @@ class ArticleSerializers(SimpleArticleSerializers, ArticleSerializersMixin):
             instance.category_id = self.context.get('category_id')
 
         for k, v in validated_data.items():
+            update_fields.append(k)
             instance.__setattr__(k, v)
-        instance.save()
+        instance.save(update_fields=update_fields)
         return instance
