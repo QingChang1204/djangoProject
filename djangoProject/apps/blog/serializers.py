@@ -7,7 +7,7 @@ class BlogUserSerializers(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'username', 'email', 'display_account', 'icon', 'description', 'password'
+            'username', 'email', 'display_account', 'icon', 'password'
         ]
         extra_kwargs = {'password': {'write_only': True}}
 
