@@ -172,6 +172,22 @@ class CommentViewSets(GenericViewSet):
     serializer_class = CommentSerializers
     pagination_class = TwentyPagination
 
+    def list(self, request):
+        try:
+            article_id = request.query_params['id']
+        except (KeyError, ValueError):
+            return custom_response(PARAM_ERROR, 200)
+        instance = self.queryset.filter(
+            article_id=article_id
+        ).all()
+        serializers = self.serializer_class(
+            instance=instance,
+            many=True
+        )
+
+        COMMENT_INFO['data'] = serializers.data
+        return custom_response(COMMENT_INFO, 200)
+
     def create(self, request):
         request.data['user_id'] = request.user.id
         serializers = self.serializer_class(data=request.data)

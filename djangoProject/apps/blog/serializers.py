@@ -209,7 +209,6 @@ class MyArticleSerializers(serializers.ModelSerializer, ArticleSerializersMixin)
     category_name = serializers.SerializerMethodField(read_only=True)
     datetime_update = serializers.DateTimeField(format='%Y年%m月%d日 %H时:%M分:%S秒', read_only=True)
     publish_status = serializers.BooleanField(write_only=True)
-    comments = CommentSerializers(many=True, read_only=True)
     datetime_created = serializers.DateTimeField(format='%Y年%m月%d日 %H时:%M分:%S秒', read_only=True)
 
     class Meta:
@@ -217,7 +216,7 @@ class MyArticleSerializers(serializers.ModelSerializer, ArticleSerializersMixin)
         fields = [
             'id', 'title', 'attached_pictures',
             'category_name', 'publish_status', 'content',
-            'tag', 'datetime_created', 'datetime_update', 'comments'
+            'tag', 'datetime_created', 'datetime_update'
         ]
         read_only_fields = fields
 
@@ -227,13 +226,12 @@ class ArticleSerializers(SimpleArticleSerializers, ArticleSerializersMixin):
     category_name = serializers.SerializerMethodField(read_only=True)
     datetime_update = serializers.DateTimeField(format='%Y年%m月%d日 %H时:%M分:%S秒', read_only=True)
     publish_status = serializers.BooleanField(write_only=True)
-    comments = CommentSerializers(many=True, read_only=True)
 
     def __init__(self, *args, **kwargs):
         self.Meta = super(ArticleSerializers, self).Meta
         self.Meta.fields += [
             'category_name', 'publish_status', 'content',
-            'tag', 'datetime_update', 'comments'
+            'tag', 'datetime_update'
         ]
         self.Meta.read_only_fields = ['datetime_created', 'datetime_update', 'id']
         super().__init__(*args, **kwargs)
