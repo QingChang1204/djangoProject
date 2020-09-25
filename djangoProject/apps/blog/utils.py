@@ -2,10 +2,12 @@ import json
 import logging
 import random
 import uuid
+from collections import OrderedDict
 from django.conf import settings
 from django.http import HttpResponse
 from django.utils import timezone
 from django_redis.pool import ConnectionFactory
+from rest_framework.pagination import PageNumberPagination
 from blog.search import SearchByEs
 from aliyunsdkcore.request import RpcRequest
 from aliyunsdkcore.client import AcsClient
@@ -24,6 +26,24 @@ class DecodeConnectionFactory(ConnectionFactory):
 
 def custom_response(data, status, *args, **kwargs):
     return HttpResponse(json.dumps(data, ensure_ascii=False), status=status, *args, **kwargs)
+
+
+class PaginationMixin:
+    def get_paginated_data(self, data):
+        return OrderedDict([
+            ('count', self.page.paginator.count),
+            ('next', self.get_next_link()),
+            ('previous', self.get_previous_link()),
+            ('results', data)
+        ])
+
+
+class TenPagination(PageNumberPagination, PaginationMixin):
+    page_size = 10
+
+
+class TwentyPagination(PageNumberPagination, PaginationMixin):
+    page_size = 20
 
 
 class SendSMS:

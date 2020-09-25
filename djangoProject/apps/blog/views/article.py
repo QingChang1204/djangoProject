@@ -6,8 +6,7 @@ from blog.errcode import ARTICLE_INFO, PARAM_ERROR, SUCCESS, COMMENT_INFO
 from blog.models import Article, Comment
 from blog.serializers import ArticleSerializers, CategorySerializers, CommentSerializers, ReplySerializers, \
     SimpleArticleSerializers, MyArticleSerializers
-from blog.utils import search, custom_response
-from blog.pagination import TenPagination, TwentyPagination
+from blog.utils import search, custom_response, TenPagination, TwentyPagination
 
 
 class ArticleViewSets(GenericViewSet):
