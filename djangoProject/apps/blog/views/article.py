@@ -3,7 +3,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.viewsets import GenericViewSet
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from blog.errcode import ARTICLE_INFO, PARAM_ERROR, SUCCESS, COMMENT_INFO
-from blog.models import Article, Comment, Reply
+from blog.models import Article, Comment
 from blog.serializers import ArticleSerializers, CategorySerializers, CommentSerializers, ReplySerializers, \
     SimpleArticleSerializers, MyArticleSerializers
 from blog.utils import search, custom_response
@@ -39,10 +39,10 @@ class ArticleViewSets(GenericViewSet):
 
     def list(self, request):
         page = self.pagination_class()
-        articles = self.queryset.filter(
+        instances = self.queryset.filter(
             user_id=request.user.id
         ).order_by('-datetime_created').all()
-        page_list = page.paginate_queryset(articles, request, view=self)
+        page_list = page.paginate_queryset(instances, request, view=self)
         serializers = MyArticleSerializers(
             instance=page_list,
             many=True
@@ -56,13 +56,14 @@ class ArticleViewSets(GenericViewSet):
         context = {"user_id": request.user.id}
         context = self.get_category(request.data, context)
 
-        article = self.serializer_class(
+        serializer = self.serializer_class(
             data=request.data,
-            context=context)
-        article.is_valid(raise_exception=True)
-        article.save()
+            context=context
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
 
-        ARTICLE_INFO['data'] = article.data
+        ARTICLE_INFO['data'] = serializer.data
         return custom_response(ARTICLE_INFO, 200)
 
     def put(self, request):
@@ -169,8 +170,8 @@ class ArticleViewSets(GenericViewSet):
         except Article.DoesNotExist:
             return custom_response(PARAM_ERROR, 200)
 
-        serializers = self.serializer_class(instance=instance)
-        ARTICLE_INFO['data'] = serializers.data
+        serializer = self.serializer_class(instance=instance)
+        ARTICLE_INFO['data'] = serializer.data
         return custom_response(ARTICLE_INFO, 200)
 
 
@@ -199,21 +200,21 @@ class CommentViewSets(GenericViewSet):
 
     def create(self, request):
         request.data['user_id'] = request.user.id
-        serializers = self.serializer_class(data=request.data)
-        serializers.is_valid(raise_exception=True)
-        serializers.save()
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
 
-        COMMENT_INFO['data'] = serializers.data
+        COMMENT_INFO['data'] = serializer.data
         return custom_response(COMMENT_INFO, 200)
 
     @staticmethod
     def put(request):
         request.data['user_id'] = request.user.id
-        serializers = ReplySerializers(data=request.data)
-        serializers.is_valid(raise_exception=True)
-        serializers.save()
+        serializer = ReplySerializers(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
 
-        COMMENT_INFO['data'] = serializers.data
+        COMMENT_INFO['data'] = serializer.data
         return custom_response(COMMENT_INFO, 200)
 
     def delete(self, request):
@@ -222,12 +223,9 @@ class CommentViewSets(GenericViewSet):
         except (KeyError, ValueError, AttributeError):
             return custom_response(PARAM_ERROR, 200)
 
-        if self.queryset.filter(
-                id=comment_id,
-                user_id=request.user.id
-        ).delete():
-            Reply.objects.filter(
-                comment_id=request.data['id']
-            ).delete()
+        self.queryset.filter(
+            id=comment_id,
+            user_id=request.user.id
+        ).delete()
 
         return custom_response(SUCCESS, 200)

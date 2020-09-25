@@ -1,6 +1,6 @@
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
-from blog.models import Article
+from blog.models import Article, Comment, Reply
 from blog.utils import search
 
 
@@ -10,3 +10,10 @@ def search_article(instance, **kwargs):
     if instance.tag is not None:
         search_word += instance.tag
     search.handle_search(instance.id, search_word, instance.publish_status)
+
+
+@receiver(post_delete, sender=Comment)
+def delete_reply(instance, **kwargs):
+    Reply.objects.filter(
+        comment_id=instance.id
+    ).delete()
