@@ -1,3 +1,5 @@
 .idea
 djangoProject/settings/local_settings.py
 /log
+/venv
+reload
