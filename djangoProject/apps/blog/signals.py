@@ -29,6 +29,7 @@ def delete_article_pictures(instance, **kwargs):
         attached_table="article",
         attached_id=instance.id
     )
+    search.delete_search(article_id=instance.id)
 
 
 @receiver(pre_delete, sender=Comment)

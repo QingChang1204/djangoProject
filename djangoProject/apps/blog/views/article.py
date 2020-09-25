@@ -93,8 +93,6 @@ class ArticleViewSets(GenericViewSet):
             article = self.get_object()
         except Article.DoesNotExist:
             return custom_response(PARAM_ERROR, 200)
-
-        search.delete_search(article_id=article.id)
         article.delete()
 
         return custom_response(SUCCESS, 200)
