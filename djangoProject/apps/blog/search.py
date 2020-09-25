@@ -25,7 +25,9 @@ class SearchByEs:
 
     def handle_search(self, article_id, search_word, publish_status):
         article = self.article(
-            meta={'id': article_id}, search_word=search_word, publish_status=publish_status
+            meta={'id': article_id},
+            search_word=search_word,
+            publish_status=publish_status,
         )
         article.save()
 
@@ -37,6 +39,8 @@ class SearchByEs:
             "match", search_word=search_word
         ).query(
             "match_phrase", publish_status=True
+        ).sort(
+            '-_id'
         )[(page - 1) * page_size: page * page_size]
         res_count = search.count()
         res = search.execute()
