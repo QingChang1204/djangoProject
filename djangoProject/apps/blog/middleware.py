@@ -22,7 +22,7 @@ class RequestLimit:
         key = REDIS_KEY['limit_key'].format(check_type, info)
         request_sum = self.redis.get(key)
         request_sum = int(request_sum) if request_sum else 0
-        limit_max, limit_expired_time = LIMIT_INFO.get(LIMIT_INFO, (5 * 60, 100))
+        limit_expired_time, limit_max = LIMIT_INFO.get(check_type, (5 * 60, 100))
         if request_sum:
             if request_sum <= limit_max:
                 request_sum = self.redis.incrby(key, 1)
@@ -50,21 +50,22 @@ class PreventMiddleware(MiddlewareMixin):
 
     def process_request(self, request):
         path = request.path
-        if path in LOG_IN_URL_PATH:
-            if request.user.is_anonymous:
-                user_id = None
-            else:
-                user_id = request.user.id
-            ip = prevent_client.get_client_ip(request)
-            request_success = self.check_prevent(user_id, ip, "log_in_limit")
-            if not request_success:
-                return custom_response({"detail": "您的访问过于频繁，请稍后再试。"}, 401)
-        elif request.method in ['PUT', 'POST'] and path in COMMENT_URL_PATH:
-            if request.user.is_anonymous:
-                user_id = None
-            else:
-                user_id = request.user.id
-            ip = prevent_client.get_client_ip(request)
-            request_success = self.check_prevent(user_id, ip, "comment_limit")
-            if not request_success:
-                return custom_response({"detail": "您的评论或回复过于频繁，请稍后再试。"}, 401)
+        if request.method in ['PUT', 'POST']:
+            if path in LOG_IN_URL_PATH:
+                if request.user.is_anonymous:
+                    user_id = None
+                else:
+                    user_id = request.user.id
+                ip = prevent_client.get_client_ip(request)
+                request_success = self.check_prevent(user_id, ip, "log_in_limit")
+                if not request_success:
+                    return custom_response({"detail": "您的访问过于频繁，请稍后再试。"}, 401)
+            elif path in COMMENT_URL_PATH:
+                if request.user.is_anonymous:
+                    user_id = None
+                else:
+                    user_id = request.user.id
+                ip = prevent_client.get_client_ip(request)
+                request_success = self.check_prevent(user_id, ip, "comment_limit")
+                if not request_success:
+                    return custom_response({"detail": "您的评论或回复过于频繁，请稍后再试。"}, 404)
