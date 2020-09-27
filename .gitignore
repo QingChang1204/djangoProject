@@ -3,3 +3,6 @@ djangoProject/settings/local_settings.py
 /log
 /venv
 reload
+__pycache__
+.DS_Store
+celerybeat-schedule
