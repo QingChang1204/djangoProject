@@ -57,7 +57,7 @@ class SearchByEs:
         search = Search(
             index=article_index
         ).query(
-            "match", search_word=search_word
+            "multi_match", query=search_word, fields=['author', 'search_word']
         ).query(
             "match_phrase", publish_status=True
         ).sort(
