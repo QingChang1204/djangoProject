@@ -5,7 +5,9 @@ from blog.tasks import search_article, delete_attached_picture, synchronous_user
 
 
 @receiver(post_save, sender=Article)
-def post_search_article(instance, created, **kwargs):
+def post_search_article(**kwargs):
+    instance = kwargs['instance']
+    created = kwargs['created']
     if created:
         search_article.delay(
             instance.id, instance.content, instance.title, instance.tag, instance.publish_status, instance.user.username
@@ -13,7 +15,9 @@ def post_search_article(instance, created, **kwargs):
 
 
 @receiver(pre_save, sender=Article)
-def put_search_article(instance, update_fields, **kwargs):
+def put_search_article(**kwargs):
+    instance = kwargs['instance']
+    update_fields = kwargs['update_fields']
     check = ['content', 'title', 'tag']
     if instance.id is not None and any([info in update_fields for info in check]):
         search_article.delay(
@@ -22,17 +26,21 @@ def put_search_article(instance, update_fields, **kwargs):
 
 
 @receiver(pre_delete, sender=Article)
-def delete_article_pictures(instance, **kwargs):
+def delete_article_pictures(**kwargs):
+    instance = kwargs['instance']
     delete_attached_picture.delay("article", instance.id)
 
 
 @receiver(pre_delete, sender=Comment)
-def delete_reply(instance, **kwargs):
+def delete_reply(**kwargs):
+    instance = kwargs['instance']
     delete_reply.delay(instance.id)
 
 
 @receiver(pre_save, sender=User)
-def put_search_article(instance, update_fields, **kwargs):
+def put_search_article(**kwargs):
+    instance = kwargs['instance']
+    update_fields = kwargs['update_fields']
     check = ['username']
     if instance.id is not None and any([info in update_fields for info in check]):
         old_instance = User.objects.filter(
