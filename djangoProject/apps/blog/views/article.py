@@ -62,8 +62,7 @@ class ArticleViewSets(GenericViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
-        ARTICLE_INFO['data'] = serializer.data
-        return custom_response(ARTICLE_INFO, 200)
+        return custom_response(SUCCESS, 200)
 
     def put(self, request):
         try:
@@ -84,8 +83,7 @@ class ArticleViewSets(GenericViewSet):
         )
         serializer.save()
 
-        ARTICLE_INFO['data'] = serializer.data
-        return custom_response(ARTICLE_INFO, 200)
+        return custom_response(SUCCESS, 200)
 
     def delete(self, request):
         try:
@@ -146,24 +144,18 @@ class ArticleViewSets(GenericViewSet):
 
     @action(detail=False,
             methods=['GET'],
-            permission_classes=[AllowAny | IsAuthenticated],
-            authentication_classes=[JWTAuthentication])
+            permission_classes=[AllowAny],
+            authentication_classes=[])
     def get_article(self, request):
         try:
             article_id = int(request.query_params['id'])
         except (KeyError, ValueError, AttributeError):
             return custom_response(PARAM_ERROR, 200)
         try:
-            if request.user.is_anonymous:
-                instance = self.queryset.get(
-                    id=article_id,
-                    publish_status=True
-                )
-            else:
-                instance = self.queryset.get(
-                    id=article_id,
-                    user_id=request.user.id
-                )
+            instance = self.queryset.get(
+                id=article_id,
+                publish_status=True
+            )
         except Article.DoesNotExist:
             return custom_response(PARAM_ERROR, 200)
 
