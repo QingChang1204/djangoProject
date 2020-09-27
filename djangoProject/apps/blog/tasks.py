@@ -6,11 +6,11 @@ from blog.models import AttachedPicture, Reply
 
 
 @task
-def search_article(article_id, content, title, tag, publish_status):
+def search_article(article_id, content, title, tag, publish_status, author):
     search_word = content + title
     if tag is not None:
         search_word += tag
-    search.handle_search(article_id, search_word, publish_status)
+    search.handle_search(article_id, search_word, publish_status, author)
 
 
 @task
@@ -27,6 +27,11 @@ def delete_reply(instance_id):
     Reply.objects.filter(
         comment_id=instance_id
     ).delete()
+
+
+@task
+def synchronous_username(old_username, new_username):
+    search.update_search_by_author(old_username, new_username)
 
 
 @periodic_task(run_every=(crontab(minute=1, hour=0)), ignore_result=True)
