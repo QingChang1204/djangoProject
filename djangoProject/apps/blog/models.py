@@ -79,11 +79,11 @@ class User(NewAbstractUser):
     def __str__(self):
         return self.username
 
-    def save(self):
+    def save(self, **kwargs):
         hasher = hashids.Hashids(salt=self.username)
         self.display_account = hasher.encode(int(time.time()))
         self.last_login = timezone.now()
-        super(User, self).save()
+        super(User, self).save(**kwargs)
 
 
 class Category(models.Model):

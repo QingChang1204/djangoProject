@@ -18,6 +18,7 @@ class BlogUserSerializers(serializers.ModelSerializer):
         return instance
 
     def update(self, instance, validated_data):
+        update_fields = []
         try:
             password = validated_data.pop('password')
         except KeyError:
@@ -26,7 +27,8 @@ class BlogUserSerializers(serializers.ModelSerializer):
             instance.set_password(password)
         for k, v in validated_data.items():
             instance.__setattr__(k, v)
-        instance.save()
+            update_fields.append(k)
+        instance.save(update_fields=update_fields)
         return instance
 
 
