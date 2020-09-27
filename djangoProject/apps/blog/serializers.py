@@ -189,9 +189,9 @@ class ArticleSerializers(SimpleArticleSerializers, ArticleSerializersMixin):
         self.Meta = super(ArticleSerializers, self).Meta
         self.Meta.fields += [
             'category_name', 'publish_status', 'content',
-            'tag', 'datetime_update'
+            'tag', 'datetime_update', 'user_id'
         ]
-        self.Meta.read_only_fields = ['datetime_created', 'datetime_update', 'id']
+        self.Meta.read_only_fields = ['datetime_created', 'datetime_update', 'id', 'user_id']
         super().__init__(*args, **kwargs)
 
     def create(self, validated_data):
@@ -202,14 +202,14 @@ class ArticleSerializers(SimpleArticleSerializers, ArticleSerializersMixin):
         )
         instance.save()
         if self.initial_data.get('images', False):
-            set_attached_picture(self.initial_data['images'], "article", instance.id)
+            set_attached_picture.delay(self.initial_data['images'], "article", instance.id)
 
         return instance
 
     def update(self, instance, validated_data):
         update_fields = []
         if self.initial_data.get('images', False):
-            set_attached_picture(self.initial_data['images'], "article", instance.id)
+            set_attached_picture.delay(self.initial_data['images'], "article", instance.id)
 
         if self.context.get('category_id', False):
             instance.category_id = self.context.get('category_id')
