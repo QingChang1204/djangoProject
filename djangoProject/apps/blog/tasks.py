@@ -51,7 +51,7 @@ class AttachedPictureSerializers(serializers.ModelSerializer):
         self.new_instance_id_list = []
 
 
-@task
+@task(name='blog_signal.search_article')
 def search_article(article_id, content, title, tag, publish_status, author):
     search_word = content + title
     if tag is not None:
@@ -59,7 +59,7 @@ def search_article(article_id, content, title, tag, publish_status, author):
     search.handle_search(article_id, search_word, publish_status, author)
 
 
-@task
+@task(name='blog_signal.delete_attached_picture')
 def delete_attached_picture(attached_table, attached_id):
     AttachedPicture.objects.stealth_delete(
         attached_table=attached_table,
@@ -68,19 +68,19 @@ def delete_attached_picture(attached_table, attached_id):
     search.delete_search(article_id=attached_id)
 
 
-@task
+@task(name='blog_signal.delete_reply')
 def delete_reply(instance_id):
     Reply.objects.filter(
         comment_id=instance_id
     ).delete()
 
 
-@task
+@task(name='blog_signal.synchronous_username')
 def synchronous_username(old_username, new_username):
     search.update_search_by_author(old_username, new_username)
 
 
-@task
+@task(name='blog_signal.set_attached_picture')
 def set_attached_picture(images, attached_table, attached_id):
     image_serializers = AttachedPictureSerializers(
         data=images,
@@ -94,6 +94,6 @@ def set_attached_picture(images, attached_table, attached_id):
         image_serializers.child.remove_old_instance()
 
 
-@periodic_task(run_every=(crontab(minute=1, hour=0)), ignore_result=True)
+@periodic_task(run_every=(crontab(minute=1, hour=0)), ignore_result=True, name='blog_daily.test')
 def daily():
     logger.info("daily")
