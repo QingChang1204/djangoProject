@@ -1,7 +1,9 @@
 from __future__ import absolute_import, unicode_literals
+
+from celery.schedules import crontab
 from rest_framework import serializers
-from celery.decorators import task, periodic_task
-from celery.task.schedules import crontab
+from djangoProject.celery import app as current_app
+from celery.task import Task, PeriodicTask
 from blog.models import AttachedPicture, Reply
 from blog.utils import es_search, logger
 
@@ -51,7 +53,7 @@ class AttachedPictureSerializers(serializers.ModelSerializer):
         self.new_instance_id_list = []
 
 
-@task(name='blog_signal.search_article')
+@current_app.task(name='blog_signal.search_article', base=Task)
 def search_article(article_id, content, title, tag, publish_status, author):
     search_word = content + title
     if tag is not None:
@@ -59,7 +61,7 @@ def search_article(article_id, content, title, tag, publish_status, author):
     es_search.handle_search(article_id, search_word, publish_status, author)
 
 
-@task(name='blog_signal.delete_attached_picture')
+@current_app.task(name='blog_signal.delete_attached_picture', base=Task)
 def delete_attached_picture(attached_table, attached_id):
     AttachedPicture.objects.stealth_delete(
         attached_table=attached_table,
@@ -68,19 +70,19 @@ def delete_attached_picture(attached_table, attached_id):
     es_search.delete_search(article_id=attached_id)
 
 
-@task(name='blog_signal.delete_reply')
+@current_app.task(name='blog_signal.delete_reply', base=Task)
 def delete_reply(instance_id):
     Reply.objects.filter(
         comment_id=instance_id
     ).delete()
 
 
-@task(name='blog_signal.synchronous_username')
+@current_app.task(name='blog_signal.synchronous_username', base=Task)
 def synchronous_username(old_username, new_username):
     es_search.update_search_by_author(old_username, new_username)
 
 
-@task(name='blog_signal.set_attached_picture')
+@current_app.task(name='blog_signal.set_attached_picture', base=Task)
 def set_attached_picture(images, attached_table, attached_id):
     image_serializers = AttachedPictureSerializers(
         data=images,
@@ -94,6 +96,6 @@ def set_attached_picture(images, attached_table, attached_id):
         image_serializers.child.remove_old_instance()
 
 
-@periodic_task(run_every=(crontab(minute=1, hour=0)), ignore_result=True, name='blog_daily.test')
+@current_app.task(base=PeriodicTask, run_every=(crontab(minute=1, hour=0)), ignore_result=True, name='blog_daily.test')
 def daily():
     logger.info("daily")
