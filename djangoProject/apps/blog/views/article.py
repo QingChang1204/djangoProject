@@ -6,7 +6,7 @@ from blog.errcode import ARTICLE_INFO, PARAM_ERROR, SUCCESS, COMMENT_INFO
 from blog.models import Article, Comment
 from blog.serializers import ArticleSerializers, CategorySerializers, CommentSerializers, ReplySerializers, \
     SimpleArticleSerializers, MyArticleSerializers
-from blog.utils import search, custom_response, TenPagination, TwentyPagination
+from blog.utils import es_search, custom_response, TenPagination, TwentyPagination
 
 
 class ArticleViewSets(GenericViewSet):
@@ -104,7 +104,7 @@ class ArticleViewSets(GenericViewSet):
             page = int(request.data['page'])
         except (KeyError, ValueError):
             return custom_response(PARAM_ERROR, 200)
-        res_dict, res_count = search.query_search(search_keywords, page, 10)
+        res_dict, res_count = es_search.query_search(search_keywords, page, 10)
         article_id_list = []
         for res in res_dict['hits']['hits']:
             article_id_list.append(res['_id'])

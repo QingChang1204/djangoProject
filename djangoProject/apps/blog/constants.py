@@ -8,3 +8,5 @@ LIMIT_INFO = {
 REDIS_KEY = {
     "limit_key": 'limit_{}_{}'
 }
+
+ARTICLE_INDEX = "article8"
