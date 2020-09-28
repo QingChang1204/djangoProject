@@ -1,9 +1,9 @@
 from __future__ import absolute_import, unicode_literals
 from rest_framework import serializers
-from blog.utils import search, logger
 from celery.decorators import task, periodic_task
 from celery.task.schedules import crontab
 from blog.models import AttachedPicture, Reply
+from blog.utils import es_search, logger
 
 
 class AttachedPictureSerializers(serializers.ModelSerializer):
@@ -56,7 +56,7 @@ def search_article(article_id, content, title, tag, publish_status, author):
     search_word = content + title
     if tag is not None:
         search_word += tag
-    search.handle_search(article_id, search_word, publish_status, author)
+    es_search.handle_search(article_id, search_word, publish_status, author)
 
 
 @task(name='blog_signal.delete_attached_picture')
@@ -65,7 +65,7 @@ def delete_attached_picture(attached_table, attached_id):
         attached_table=attached_table,
         attached_id=attached_id
     )
-    search.delete_search(article_id=attached_id)
+    es_search.delete_search(article_id=attached_id)
 
 
 @task(name='blog_signal.delete_reply')
@@ -77,7 +77,7 @@ def delete_reply(instance_id):
 
 @task(name='blog_signal.synchronous_username')
 def synchronous_username(old_username, new_username):
-    search.update_search_by_author(old_username, new_username)
+    es_search.update_search_by_author(old_username, new_username)
 
 
 @task(name='blog_signal.set_attached_picture')
