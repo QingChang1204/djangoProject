@@ -19,7 +19,7 @@ def put_search_article(**kwargs):
     instance = kwargs['instance']
     update_fields = kwargs['update_fields']
     check = ['content', 'title', 'tag']
-    if instance.id is not None and any([info in update_fields for info in check]):
+    if instance.id is not None and update_fields is not None and any([info in update_fields for info in check]):
         search_article.delay(
             instance.id, instance.content, instance.title, instance.tag, instance.publish_status, instance.user.username
         )
@@ -42,7 +42,7 @@ def put_search_article(**kwargs):
     instance = kwargs['instance']
     update_fields = kwargs['update_fields']
     check = ['username']
-    if instance.id is not None and any([info in update_fields for info in check]):
+    if instance.id is not None and update_fields is not None and any([info in update_fields for info in check]):
         old_instance = User.objects.filter(
             id=instance.id
         ).only('username').first()

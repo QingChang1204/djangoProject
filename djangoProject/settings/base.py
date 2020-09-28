@@ -259,7 +259,7 @@ LOGGING = {
         },
     }
 }
-AUTHENTICATION_BACKENDS = ('blog.views.auth.CustomBackend',)
+AUTHENTICATION_BACKENDS = ('blog.auth.CustomBackend',)
 
 MIGRATE_APPS = ['blog']
 AUTH_USER_MODEL = 'blog.User'
