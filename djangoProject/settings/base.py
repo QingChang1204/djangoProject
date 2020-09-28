@@ -14,6 +14,7 @@ import os
 import platform
 from pathlib import Path
 from sys import path
+from kombu import Queue
 
 
 def here(*x):
@@ -32,7 +33,6 @@ path.append(root('apps'))
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
 
@@ -43,7 +43,6 @@ SECRET_KEY = '4+b&$nxo_pclczp$ja^k@%8cgg_zpa#wnj_@gpo#jo5-t4d&-q'
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
 
 # Application definition
 
@@ -96,7 +95,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'djangoProject.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
 
@@ -106,7 +104,6 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/3.1/ref/settings/#auth-password-validators
@@ -152,12 +149,10 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 10,
 }
 
-
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': datetime.timedelta(days=7),
     'REFRESH_TOKEN_LIFETIME': datetime.timedelta(days=30),
 }
-
 
 # Internationalization
 # https://docs.djangoproject.com/en/3.1/topics/i18n/
@@ -278,3 +273,18 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'Asia/Shanghai'
 CELERYD_MAX_TASKS_PER_CHILD = 20
 CELERYD_PREFETCH_MULTIPLIER = 2
+
+DEFAULT_QUEUE = 'blog.default'
+DAILY_QUEUE = 'blog.daily'
+SIGNAL_QUEUE = 'blog.signal'
+
+CELERY_DEFAULT_QUEUE = DEFAULT_QUEUE
+CELERY_DEFAULT_EXCHANGE_TYPE = 'direct'
+CELERY_DEFAULT_EXCHANGE = DEFAULT_QUEUE
+CELERY_DEFAULT_ROUTING_KEY = DEFAULT_QUEUE
+
+CELERY_QUEUES = {
+    Queue(DEFAULT_QUEUE, DEFAULT_QUEUE, DEFAULT_QUEUE),
+    Queue(DAILY_QUEUE, DAILY_QUEUE, DAILY_QUEUE),
+    Queue(SIGNAL_QUEUE, SIGNAL_QUEUE, SIGNAL_QUEUE)
+}
