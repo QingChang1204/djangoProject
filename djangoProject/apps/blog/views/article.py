@@ -1,17 +1,16 @@
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.viewsets import GenericViewSet
-from rest_framework_simplejwt.authentication import JWTAuthentication
 from blog.errcode import ARTICLE_INFO, PARAM_ERROR, SUCCESS, COMMENT_INFO
 from blog.models import Article, Comment
 from blog.serializers import ArticleSerializers, CategorySerializers, CommentSerializers, ReplySerializers, \
     SimpleArticleSerializers, MyArticleSerializers
-from blog.utils import es_search, custom_response, TenPagination, TwentyPagination
+from blog.utils import es_search, custom_response, TenPagination, TwentyPagination, CustomAuth
 
 
 class ArticleViewSets(GenericViewSet):
     queryset = Article.objects.all()
-    authentication_classes = [JWTAuthentication]
+    authentication_classes = [CustomAuth]
     permission_classes = [IsAuthenticated]
     serializer_class = ArticleSerializers
     pagination_class = TenPagination
@@ -33,7 +32,7 @@ class ArticleViewSets(GenericViewSet):
             category = CategorySerializers(data=data)
             category.is_valid(raise_exception=True)
             category = category.save()
-            context['category_id'] = category.id
+            context['category'] = category
         return context
 
     def list(self, request):
@@ -52,7 +51,7 @@ class ArticleViewSets(GenericViewSet):
 
     def create(self, request):
         # 序列化器通过上下文兼容外键关系
-        context = {"user_id": request.user.id}
+        context = {"user": request.user}
         context = self.get_category(request.data, context)
 
         serializer = self.serializer_class(
@@ -166,7 +165,7 @@ class ArticleViewSets(GenericViewSet):
 
 class CommentViewSets(GenericViewSet):
     queryset = Comment.objects.all()
-    authentication_classes = [JWTAuthentication]
+    authentication_classes = [CustomAuth]
     permission_classes = [IsAuthenticated]
     serializer_class = CommentSerializers
     pagination_class = TwentyPagination

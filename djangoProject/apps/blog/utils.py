@@ -11,12 +11,15 @@ from django.conf import settings
 from django.http import HttpResponse
 from django.utils import timezone
 from django_redis.pool import ConnectionFactory
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.pagination import PageNumberPagination
 from aliyunsdkcore.request import RpcRequest
 from aliyunsdkcore.client import AcsClient
 from rest_framework.views import exception_handler
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework_simplejwt.exceptions import InvalidToken
 from blog.errcode import AUTH_FAIL, NO_PERMISSION, NO_METHOD, UNKNOWN_ERROR
-from blog.models import VerifyCode
+from blog.models import VerifyCode, User
 from blog.constants import ARTICLE_INDEX
 
 logger = logging.getLogger(__name__)
@@ -84,6 +87,24 @@ class TwentyPagination(PageNumberPagination, PaginationMixin):
     page_size = 20
 
 
+class CustomAuth(JWTAuthentication):
+
+    def get_user(self, validated_token):
+        try:
+            user_id = validated_token['user_id']
+        except KeyError:
+            raise InvalidToken('Token contained no recognizable user identification')
+
+        user = User.objects.filter(**{'id': user_id}).only(
+            'is_active', 'is_staff', 'is_superuser', 'id'
+        ).first()
+
+        if not user.is_active:
+            raise AuthenticationFailed('User is inactive', code='user_inactive')
+
+        return user
+
+
 class SendSMS:
     REGION = "cn-hangzhou"
     PRODUCT_NAME = "Dysmsapi"
@@ -123,7 +144,7 @@ class SendSMS:
             )
             code_info.code = code
             code_info.sent = timezone.now()
-            code_info.save()
+            code_info.save(update_fields=['code', 'sent'])
             return True, return_code
         else:
             return False, return_code
