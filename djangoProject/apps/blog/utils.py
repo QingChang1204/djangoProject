@@ -4,6 +4,7 @@ import random
 import uuid
 import datetime
 from collections import OrderedDict
+from django.shortcuts import render
 from elasticsearch_dsl import Search, Document, Text, Boolean, Date, Keyword, UpdateByQuery
 from elasticsearch_dsl.connections import connections
 from django.conf import settings
@@ -13,6 +14,8 @@ from django_redis.pool import ConnectionFactory
 from rest_framework.pagination import PageNumberPagination
 from aliyunsdkcore.request import RpcRequest
 from aliyunsdkcore.client import AcsClient
+from rest_framework.views import exception_handler
+from blog.errcode import AUTH_FAIL, NO_PERMISSION, NO_METHOD, UNKNOWN_ERROR
 from blog.models import VerifyCode
 from blog.constants import ARTICLE_INDEX
 
@@ -38,6 +41,39 @@ class PaginationMixin:
             ('previous', self.get_previous_link()),
             ('results', data)
         ])
+
+
+def custom_exception_handler(exception, context):
+    response = exception_handler(exception, context)
+
+    # Now add the HTTP status code to the response.
+    if response is not None:
+        response.data['status_code'] = response.status_code
+
+    if not settings.DEBUG:
+
+        if response.data['status_code'] == 403:
+            return custom_response(
+                NO_PERMISSION, 200
+            )
+        elif response.data['status_code'] == 401:
+            AUTH_FAIL['data'] = {
+                'info': response.data.get('detail')
+            }
+            return custom_response(
+                AUTH_FAIL, 200
+            )
+        elif response.data['status_code'] == 405:
+            return custom_response(
+                NO_METHOD, 200
+            )
+        elif response.data['status_code'] == 404:
+            return render(None, '404.html', status=response.data['status_code'])
+        elif 405 < response.data['status_code'] < 500:
+            return custom_response(
+                UNKNOWN_ERROR, response.data['status_code']
+            )
+    return response
 
 
 class TenPagination(PageNumberPagination, PaginationMixin):
