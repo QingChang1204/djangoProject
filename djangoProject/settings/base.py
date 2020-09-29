@@ -146,6 +146,7 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PAGINATION_CLASS':
         'rest_framework.pagination.PageNumberPagination',
+    'EXCEPTION_HANDLER': 'blog.utils.custom_exception_handler',
     'PAGE_SIZE': 10,
 }
 

@@ -17,6 +17,30 @@ ABNORMAL_BEHAVIOR = {
     "detail": " WARNING ! ABNORMAL BEHAVIOR !"
 }
 
+AUTH_FAIL = {
+    "err_code": -3,
+    "data": {},
+    "detail": " auth fail "
+}
+
+NO_PERMISSION = {
+    "err_code": -4,
+    "data": {},
+    "detail": " no permission"
+}
+
+NO_METHOD = {
+    "err_code": -5,
+    "data": {},
+    "detail": "no method"
+}
+
+UNKNOWN_ERROR = {
+    "err_code": -6,
+    "data": {},
+    "detail": " unknown error"
+}
+
 # 用户相关
 LOG_SUCCESS = {
     "err_code": 1001,
