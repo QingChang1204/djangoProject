@@ -32,10 +32,6 @@ class DecodeConnectionFactory(ConnectionFactory):
         return super().get_connection(params)
 
 
-def custom_response(data, status, *args, **kwargs):
-    return HttpResponse(json.dumps(data, ensure_ascii=False), status=status, *args, **kwargs)
-
-
 class PaginationMixin:
     def get_paginated_data(self, data):
         return OrderedDict([
@@ -44,6 +40,18 @@ class PaginationMixin:
             ('previous', self.get_previous_link()),
             ('results', data)
         ])
+
+
+class TenPagination(PageNumberPagination, PaginationMixin):
+    page_size = 10
+
+
+class TwentyPagination(PageNumberPagination, PaginationMixin):
+    page_size = 20
+
+
+def custom_response(data, status, *args, **kwargs):
+    return HttpResponse(json.dumps(data, ensure_ascii=False), status=status, *args, **kwargs)
 
 
 def custom_exception_handler(exception, context):
@@ -77,14 +85,6 @@ def custom_exception_handler(exception, context):
                 UNKNOWN_ERROR, response.data['status_code']
             )
     return response
-
-
-class TenPagination(PageNumberPagination, PaginationMixin):
-    page_size = 10
-
-
-class TwentyPagination(PageNumberPagination, PaginationMixin):
-    page_size = 20
 
 
 class CustomAuth(JWTAuthentication):
