@@ -5,17 +5,16 @@ from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 import re
 from rest_framework.viewsets import GenericViewSet
-from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import RefreshToken
 from blog.errcode import USER_INFO, EMAIL_FORMAT_ERROR, EXISTED_USER_NAME, TOKEN, PARAM_ERROR, SUCCESS
 from blog.models import User
 from blog.serializers import BlogUserSerializers
-from blog.utils import custom_response
+from blog.utils import custom_response, CustomAuth
 
 
 class UserViewSets(GenericViewSet):
     queryset = User.objects.all()
-    authentication_classes = [JWTAuthentication]
+    authentication_classes = [CustomAuth]
     permission_classes = [IsAuthenticated]
     serializer_class = BlogUserSerializers
     email_format = r'^[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+){0,4}@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+){0,4}$'
@@ -60,7 +59,7 @@ class UserViewSets(GenericViewSet):
     @action(detail=False,
             methods=['POST'],
             permission_classes=[IsAuthenticated],
-            authentication_classes=[JWTAuthentication])
+            authentication_classes=[CustomAuth])
     def update_info(self, request):
         # 用户更新个人信息
         try:
@@ -85,7 +84,7 @@ class UserViewSets(GenericViewSet):
         # 用户登录接口
         blog_user = authenticate(username=request.data['username'], password=request.data['password'])
         blog_user.last_login = timezone.now()
-        blog_user.save()
+        blog_user.save(update_fields=['last_login', ])
         token = RefreshToken.for_user(
             blog_user
         )

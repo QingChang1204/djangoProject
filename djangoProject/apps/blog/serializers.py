@@ -58,7 +58,6 @@ class CategorySerializers(serializers.ModelSerializer):
 
     def create(self, validated_data):
         instance, create_status = self.Meta.model.objects.get_or_create(category=validated_data['category'])
-        instance.save()
         return instance
 
 
@@ -197,8 +196,8 @@ class ArticleSerializers(SimpleArticleSerializers, ArticleSerializersMixin):
     def create(self, validated_data):
         instance = self.Meta.model(
             **validated_data,
-            user_id=self.context['user_id'],
-            category_id=self.context['category_id']
+            user=self.context['user'],
+            category=self.context['category']
         )
         instance.save()
         if self.initial_data.get('images', False):
@@ -211,8 +210,9 @@ class ArticleSerializers(SimpleArticleSerializers, ArticleSerializersMixin):
         if self.initial_data.get('images', False):
             set_attached_picture.delay(self.initial_data['images'], "article", instance.id)
 
-        if self.context.get('category_id', False):
-            instance.category_id = self.context.get('category_id')
+        if self.context.get('category', False):
+            instance.category = self.context.get('category')
+            update_fields.append('category')
 
         for k, v in validated_data.items():
             update_fields.append(k)
