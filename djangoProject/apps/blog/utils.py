@@ -28,12 +28,22 @@ logger = logging.getLogger(__name__)
 class DecodeConnectionFactory(ConnectionFactory):
 
     def get_connection(self, params):
+        """
+        redis 设置string为非byte类型
+        :param params:
+        :return:
+        """
         params['decode_responses'] = True
         return super().get_connection(params)
 
 
 class PaginationMixin:
     def get_paginated_data(self, data):
+        """
+        组合分页器获得分页数据
+        :param data:
+        :return:
+        """
         return OrderedDict([
             ('count', self.page.paginator.count),
             ('next', self.get_next_link()),
@@ -51,10 +61,24 @@ class TwentyPagination(PageNumberPagination, PaginationMixin):
 
 
 def custom_response(data, status, *args, **kwargs):
+    """
+    设置自定义响应
+    :param data:
+    :param status:
+    :param args:
+    :param kwargs:
+    :return:
+    """
     return HttpResponse(json.dumps(data, ensure_ascii=False), status=status, *args, **kwargs)
 
 
 def custom_exception_handler(exception, context):
+    """
+    控制 400错误返回值
+    :param exception:
+    :param context:
+    :return:
+    """
     response = exception_handler(exception, context)
 
     # Now add the HTTP status code to the response.
@@ -65,21 +89,21 @@ def custom_exception_handler(exception, context):
 
         if response.data['status_code'] == 403:
             return custom_response(
-                NO_PERMISSION, 200
+                NO_PERMISSION, 403
             )
         elif response.data['status_code'] == 401:
             AUTH_FAIL['data'] = {
                 'info': response.data.get('detail')
             }
             return custom_response(
-                AUTH_FAIL, 200
+                AUTH_FAIL, 401
             )
         elif response.data['status_code'] == 405:
             return custom_response(
-                NO_METHOD, 200
+                NO_METHOD, 405
             )
         elif response.data['status_code'] == 404:
-            return render(None, '404.html', status=response.data['status_code'])
+            return render(None, '404.html', status=404)
         elif 405 < response.data['status_code'] < 500:
             return custom_response(
                 UNKNOWN_ERROR, response.data['status_code']
@@ -90,6 +114,11 @@ def custom_exception_handler(exception, context):
 class CustomAuth(JWTAuthentication):
 
     def get_user(self, validated_token):
+        """
+        重写user查询语句
+        :param validated_token:
+        :return:
+        """
         try:
             user_id = validated_token['user_id']
         except KeyError:
@@ -114,6 +143,12 @@ class SendSMS:
         self.acs_client = AcsClient(settings.ALIYUN_SMS_ACCESS_ID, settings.ALIYUN_SMS_ACCESS_KEY, self.REGION)
 
     def send_sms(self, template_param=None, **kwargs):
+        """
+        阿里云发送短信基本方法
+        :param template_param:
+        :param kwargs:
+        :return:
+        """
         sms_request = RpcRequest(self.PRODUCT_NAME, '2017-05-25', 'SendSms')
 
         sms_request.__params = {}
@@ -128,6 +163,11 @@ class SendSMS:
         return sms_response
 
     def send_code_message(self, phone):
+        """
+        阿里云发送验证码短信
+        :param phone:
+        :return:
+        """
         code = ''.join(str(random.choice(range(10))) for _ in range(6))
         __business_id = uuid.uuid1()
         params = '{"code":"' + code + '"}'
@@ -150,6 +190,11 @@ class SendSMS:
             return False, return_code
 
     def send_warning_message(self, phone):
+        """
+        阿里云发送模版短信
+        :param phone:
+        :return:
+        """
         __business_id = uuid.uuid1()
         response = self.send_sms(OutId=__business_id,
                                  SignName=settings.SMS_SIGN_NAME,
@@ -196,6 +241,14 @@ class SearchByEs:
         self.article = Article
 
     def handle_search(self, article_id, search_word, publish_status, author):
+        """
+        文章设置搜索词
+        :param article_id:
+        :param search_word:
+        :param publish_status:
+        :param author:
+        :return:
+        """
         article = self.article(
             meta={'id': article_id},
             author=author,
@@ -206,6 +259,12 @@ class SearchByEs:
 
     @staticmethod
     def update_search_by_author(old_author, new_author):
+        """
+        文章批量更新搜索词
+        :param old_author:
+        :param new_author:
+        :return:
+        """
         ubq = UpdateByQuery(index=article_index).query(
             "match_phrase", author=old_author
         ).script(
@@ -219,6 +278,13 @@ class SearchByEs:
 
     @staticmethod
     def query_search(search_word, page=1, page_size=10):
+        """
+        文章查询搜索词
+        :param search_word:
+        :param page:
+        :param page_size:
+        :return:
+        """
         search = Search(
             index=article_index
         ).query(
@@ -236,6 +302,11 @@ class SearchByEs:
         return res.to_dict(), res_count
 
     def delete_search(self, article_id):
+        """
+        文章删除搜索词
+        :param article_id:
+        :return:
+        """
         search = self.article.get(id=article_id, ignore=404)
         if search is not None:
             search.delete()
