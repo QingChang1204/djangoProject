@@ -38,7 +38,7 @@ def delete_reply(**kwargs):
 
 
 @receiver(pre_save, sender=User)
-def put_search_article(**kwargs):
+def article_synchronous_username(**kwargs):
     instance = kwargs['instance']
     update_fields = kwargs['update_fields']
     check = ['username']

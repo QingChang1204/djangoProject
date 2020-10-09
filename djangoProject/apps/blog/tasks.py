@@ -55,6 +55,16 @@ class AttachedPictureSerializers(serializers.ModelSerializer):
 
 @current_app.task(name='blog_signal.search_article', base=Task)
 def search_article(article_id, content, title, tag, publish_status, author):
+    """
+    设置文章搜索词
+    :param article_id:
+    :param content:
+    :param title:
+    :param tag:
+    :param publish_status:
+    :param author:
+    :return:
+    """
     search_word = content + title
     if tag is not None:
         search_word += tag
@@ -63,6 +73,12 @@ def search_article(article_id, content, title, tag, publish_status, author):
 
 @current_app.task(name='blog_signal.delete_attached_picture', base=Task)
 def delete_attached_picture(attached_table, attached_id):
+    """
+    移除关联图片，关联词
+    :param attached_table:
+    :param attached_id:
+    :return:
+    """
     AttachedPicture.objects.stealth_delete(
         attached_table=attached_table,
         attached_id=attached_id
@@ -72,6 +88,11 @@ def delete_attached_picture(attached_table, attached_id):
 
 @current_app.task(name='blog_signal.delete_reply', base=Task)
 def delete_reply(instance_id):
+    """
+    移除关联回复
+    :param instance_id:
+    :return:
+    """
     Reply.objects.filter(
         comment_id=instance_id
     ).delete()
@@ -79,11 +100,24 @@ def delete_reply(instance_id):
 
 @current_app.task(name='blog_signal.synchronous_username', base=Task)
 def synchronous_username(old_username, new_username):
+    """
+    搜索引擎搜索内容同步用户名修改
+    :param old_username:
+    :param new_username:
+    :return:
+    """
     es_search.update_search_by_author(old_username, new_username)
 
 
 @current_app.task(name='blog_signal.set_attached_picture', base=Task)
 def set_attached_picture(images, attached_table, attached_id):
+    """
+    设置关联图片
+    :param images:
+    :param attached_table:
+    :param attached_id:
+    :return:
+    """
     image_serializers = AttachedPictureSerializers(
         data=images,
         many=True,

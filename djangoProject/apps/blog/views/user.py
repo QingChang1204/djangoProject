@@ -20,7 +20,11 @@ class UserViewSets(GenericViewSet):
     email_format = r'^[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+){0,4}@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+){0,4}$'
 
     def list(self, request):
-        # 获得用户基本信息
+        """
+        获得用户基本信息
+        :param request:
+        :return:
+        """
         serializer = self.serializer_class(
             instance=request.user
         )
@@ -32,7 +36,11 @@ class UserViewSets(GenericViewSet):
             permission_classes=[AllowAny],
             authentication_classes=[])
     def sign_up(self, request):
-        # 用户注册接口
+        """
+        用户注册接口
+        :param request:
+        :return:
+        """
         try:
             if re.match(self.email_format, request.data['email']):
                 blog_user = self.serializer_class(
@@ -61,7 +69,11 @@ class UserViewSets(GenericViewSet):
             permission_classes=[IsAuthenticated],
             authentication_classes=[CustomAuth])
     def update_info(self, request):
-        # 用户更新个人信息
+        """
+        用户更新个人信息接口
+        :param request:
+        :return:
+        """
         try:
             email = request.data.get('email', False)
             if email:
@@ -81,7 +93,11 @@ class UserViewSets(GenericViewSet):
             permission_classes=[AllowAny],
             authentication_classes=[])
     def log_in(self, request):
-        # 用户登录接口
+        """
+        用户登录接口
+        :param request:
+        :return:
+        """
         blog_user = authenticate(username=request.data['username'], password=request.data['password'])
         blog_user.last_login = timezone.now()
         blog_user.save(update_fields=['last_login', ])

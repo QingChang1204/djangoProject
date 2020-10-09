@@ -11,6 +11,11 @@ class RequestLimit:
 
     @staticmethod
     def get_client_ip(request):
+        """
+        获得ip地址
+        :param request:
+        :return:
+        """
         x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
         if x_forwarded_for:
             ip = x_forwarded_for.split(',')[0]
@@ -19,6 +24,12 @@ class RequestLimit:
         return ip
 
     def check(self, check_type, info):
+        """
+        检查请求次数
+        :param check_type:
+        :param info:
+        :return:
+        """
         key = REDIS_KEY['limit_key'].format(check_type, info)
         request_sum = self.redis.get(key)
         request_sum = int(request_sum) if request_sum else 0
@@ -42,6 +53,13 @@ prevent_client = RequestLimit()
 class PreventMiddleware(MiddlewareMixin):
     @staticmethod
     def check_prevent(user_id, ip, check_type):
+        """
+        检查请求次数
+        :param user_id:
+        :param ip:
+        :param check_type:
+        :return:
+        """
         if user_id is not None:
             success = prevent_client.check(check_type, user_id)
         else:

@@ -16,18 +16,28 @@ class ArticleViewSets(GenericViewSet):
     pagination_class = TenPagination
 
     def get_object(self):
+        """
+        获取models对象
+        :return:
+        """
         try:
             instance_id = int(self.request.data.pop('id', None))
         except (ValueError, TypeError, AttributeError):
             raise Article.DoesNotExist
         instance = self.queryset.get(
             id=instance_id,
-            user_id=self.request.user.id
+            user=self.request.user
         )
         return instance
 
     @staticmethod
     def get_category(data, context):
+        """
+        上下文设置目录
+        :param data:
+        :param context:
+        :return:
+        """
         if data.get('category'):
             category = CategorySerializers(data=data)
             category.is_valid(raise_exception=True)
@@ -36,9 +46,14 @@ class ArticleViewSets(GenericViewSet):
         return context
 
     def list(self, request):
+        """
+        查看自己的文章
+        :param request:
+        :return:
+        """
         page = self.pagination_class()
         instances = self.queryset.filter(
-            user_id=request.user.id
+            user=request.user
         ).order_by('-datetime_created').all()
         page_list = page.paginate_queryset(instances, request, view=self)
         serializers = MyArticleSerializers(
@@ -50,7 +65,11 @@ class ArticleViewSets(GenericViewSet):
         return custom_response(ARTICLE_INFO, 200)
 
     def create(self, request):
-        # 序列化器通过上下文兼容外键关系
+        """
+        创建文章
+        :param request:
+        :return:
+        """
         context = {"user": request.user}
         context = self.get_category(request.data, context)
 
@@ -64,6 +83,11 @@ class ArticleViewSets(GenericViewSet):
         return custom_response(SUCCESS, 200)
 
     def put(self, request):
+        """
+        修改文章
+        :param request:
+        :return:
+        """
         try:
             article = self.get_object()
         except Article.DoesNotExist:
@@ -85,6 +109,11 @@ class ArticleViewSets(GenericViewSet):
         return custom_response(SUCCESS, 200)
 
     def delete(self, request):
+        """
+        删除文章
+        :param request:
+        :return:
+        """
         try:
             article = self.get_object()
         except Article.DoesNotExist:
@@ -98,6 +127,11 @@ class ArticleViewSets(GenericViewSet):
             permission_classes=[AllowAny],
             authentication_classes=[])
     def search(self, request):
+        """
+        搜索文章
+        :param request:
+        :return:
+        """
         try:
             search_keywords = request.data['search_keywords']
             page = int(request.data['page'])
@@ -126,6 +160,11 @@ class ArticleViewSets(GenericViewSet):
             permission_classes=[AllowAny],
             authentication_classes=[])
     def all_article(self, request):
+        """
+        查看所有文章
+        :param request:
+        :return:
+        """
         page = self.pagination_class()
         instances = self.queryset.filter(
             publish_status=True
@@ -146,6 +185,11 @@ class ArticleViewSets(GenericViewSet):
             permission_classes=[AllowAny],
             authentication_classes=[])
     def get_article(self, request):
+        """
+        查看一篇文章
+        :param request:
+        :return:
+        """
         try:
             article_id = int(request.query_params['id'])
         except (KeyError, ValueError, AttributeError):
@@ -171,6 +215,11 @@ class CommentViewSets(GenericViewSet):
     pagination_class = TwentyPagination
 
     def list(self, request):
+        """
+        获得一篇文章的所有评论
+        :param request:
+        :return:
+        """
         try:
             article_id = request.query_params['id']
         except (KeyError, ValueError):
@@ -187,6 +236,11 @@ class CommentViewSets(GenericViewSet):
         return custom_response(COMMENT_INFO, 200)
 
     def create(self, request):
+        """
+        发表评论
+        :param request:
+        :return:
+        """
         request.data['user_id'] = request.user.id
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -197,6 +251,11 @@ class CommentViewSets(GenericViewSet):
 
     @staticmethod
     def put(request):
+        """
+        回复评论
+        :param request:
+        :return:
+        """
         request.data['user_id'] = request.user.id
         serializer = ReplySerializers(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -206,6 +265,11 @@ class CommentViewSets(GenericViewSet):
         return custom_response(COMMENT_INFO, 200)
 
     def delete(self, request):
+        """
+        删除评论
+        :param request:
+        :return:
+        """
         try:
             comment_id = int(request.data['id'])
         except (KeyError, ValueError, AttributeError):
