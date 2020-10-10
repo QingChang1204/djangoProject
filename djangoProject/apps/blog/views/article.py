@@ -52,7 +52,7 @@ class ArticleViewSets(GenericViewSet):
         :param request:
         :return:
         """
-        page = self.paginator()
+        page = self.paginator
         instances = self.queryset.filter(
             user=request.user
         ).order_by('-datetime_created').all()
@@ -176,7 +176,7 @@ class ArticleViewSets(GenericViewSet):
         :param request:
         :return:
         """
-        page = self.paginator()
+        page = self.paginator
         instances = self.queryset.filter(
             publish_status=True
         ).order_by(
@@ -226,7 +226,7 @@ class ArticleViewSets(GenericViewSet):
             permission_classes=[AllowAny],
             authentication_classes=[])
     def query(self, request):
-        page = self.paginator()
+        page = self.paginator
         try:
             filter_objects = query_combination(request.data)
             instances = self.queryset.filter(
@@ -266,7 +266,7 @@ class CommentViewSets(GenericViewSet):
             article_id = request.query_params['id']
         except (KeyError, ValueError):
             return custom_response(PARAM_ERROR, 200)
-        page = self.paginator()
+        page = self.paginator
         instances = self.queryset.filter(
             article_id=article_id
         ).all()
