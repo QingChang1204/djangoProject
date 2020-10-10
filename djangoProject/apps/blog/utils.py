@@ -4,6 +4,8 @@ import random
 import uuid
 import datetime
 from collections import OrderedDict
+
+from django.db.models import Q
 from django.shortcuts import render
 from elasticsearch_dsl import Search, Document, Text, Boolean, Date, Keyword, UpdateByQuery
 from elasticsearch_dsl.connections import connections
@@ -23,6 +25,54 @@ from blog.models import VerifyCode, User
 from blog.constants import ARTICLE_INDEX
 
 logger = logging.getLogger(__name__)
+
+
+class QueryException(Exception):
+    pass
+
+
+def query_combination(values_dict, check_list=None):
+    filter_objects = Q()
+    if check_list is not None:
+        if check_list != list(values_dict.keys()):
+            raise QueryException(
+                "参数异常!"
+            )
+    for key, value in values_dict.items():
+        try:
+            key = str(key)
+            value[0] = int(value[0])
+            if value[0] == 0:
+                pass
+            elif value[0] == 1:
+                filter_objects.add(
+                    Q(**{
+                        key: value[1]
+                    }), Q.AND
+                )
+            elif value[0] == 2:
+                filter_objects.add(
+                    Q(**{
+                        key + "__icontains": value[1]
+                    }), Q.AND
+                )
+            elif value[0] == 3:
+                filter_objects.add(
+                    Q(**{
+                        key + "__range": (value[1], value[2])
+                    }), Q.AND
+                )
+            else:
+                raise QueryException(
+                    "传入值非法！"
+                )
+
+        except (IndexError, ValueError, TypeError):
+            raise QueryException(
+                "检查传入数据格式!"
+            )
+        else:
+            return filter_objects
 
 
 class DecodeConnectionFactory(ConnectionFactory):

@@ -4,7 +4,8 @@ from rest_framework.viewsets import GenericViewSet
 from blog.errcode import ARTICLE_INFO, PARAM_ERROR, SUCCESS, COMMENT_INFO
 from blog.models import Article, Comment
 from blog.serializers import ArticleSerializers, CategorySerializers, CommentSerializers, ReplySerializers
-from blog.utils import es_search, custom_response, TenPagination, TwentyPagination, CustomAuth
+from blog.utils import es_search, custom_response, TenPagination, TwentyPagination, CustomAuth, query_combination, \
+    QueryException
 
 
 class ArticleViewSets(GenericViewSet):
@@ -219,6 +220,33 @@ class ArticleViewSets(GenericViewSet):
 
         serializer = self.serializer_class(instance=instance, meta=1)
         ARTICLE_INFO['data'] = serializer.data
+        return custom_response(ARTICLE_INFO, 200)
+
+    @action(detail=False,
+            methods=['POST'],
+            permission_classes=[AllowAny],
+            authentication_classes=[])
+    def query(self, request):
+        page = self.pagination_class()
+        try:
+            filter_objects = query_combination(request.data)
+            instances = self.queryset.filter(
+                filter_objects
+            ).order_by(
+                '-datetime_created'
+            ).all()
+        except (QueryException, ValueError):
+            return custom_response(PARAM_ERROR, 200)
+        page_list = page.paginate_queryset(instances, request, view=self)
+        serializers = self.serializer_class(
+            instance=page_list,
+            many=True
+        )
+        serializers.child.Meta.fields = ['id', 'user_info', 'title', 'category_name', 'attached_pictures',
+                                         'datetime_created']
+        declared_fields_list = ['attached_pictures', 'category_name', 'user_info', 'datetime_created']
+        serializers.child._declared_fields = {k: serializers.child._declared_fields[k] for k in declared_fields_list}
+        ARTICLE_INFO['data'] = page.get_paginated_data(serializers.data)
         return custom_response(ARTICLE_INFO, 200)
 
 
