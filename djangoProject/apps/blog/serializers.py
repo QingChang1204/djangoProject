@@ -61,7 +61,7 @@ class CategorySerializers(serializers.ModelSerializer):
         return instance
 
 
-class ArticleSerializersMixin:
+class AttachedSerializersMixin:
 
     @staticmethod
     def get_attached_pictures(obj):
@@ -76,6 +76,9 @@ class ArticleSerializersMixin:
         )
 
         return serializer.data
+
+
+class CategorySerializersMixin:
 
     @staticmethod
     def get_category_name(obj):
@@ -147,7 +150,8 @@ class CommentSerializers(serializers.ModelSerializer, UserSerializerMixin):
         return instance
 
 
-class ArticleSerializers(serializers.ModelSerializer, ArticleSerializersMixin, UserSerializerMixin):
+class ArticleSerializers(serializers.ModelSerializer, AttachedSerializersMixin, UserSerializerMixin,
+                         CategorySerializersMixin):
     attached_pictures = serializers.SerializerMethodField()
     category_name = serializers.SerializerMethodField(read_only=True)
     datetime_update = serializers.DateTimeField(format='%Y年%m月%d日 %H时:%M分:%S秒', read_only=True)
