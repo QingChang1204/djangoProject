@@ -3,7 +3,8 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.viewsets import GenericViewSet
 from blog.errcode import ARTICLE_INFO, PARAM_ERROR, SUCCESS, COMMENT_INFO
 from blog.models import Article, Comment
-from blog.serializers import ArticleSerializers, CategorySerializers, CommentSerializers, ReplySerializers
+from blog.serializers import ArticleSerializers, CategorySerializers, CommentSerializers, ReplySerializers, \
+    SimpleArticleSerializer, CommonArticleSerializer
 from blog.utils import es_search, custom_response, TenPagination, TwentyPagination, CustomAuth, query_combination, \
     QueryException
 
@@ -51,7 +52,7 @@ class ArticleViewSets(GenericViewSet):
         :param request:
         :return:
         """
-        page = self.pagination_class()
+        page = self.paginator()
         instances = self.queryset.filter(
             user=request.user
         ).order_by('-datetime_created').all()
@@ -79,10 +80,9 @@ class ArticleViewSets(GenericViewSet):
         context = {"user": request.user}
         context = self.get_category(request.data, context)
 
-        serializer = self.serializer_class(
+        serializer = CommonArticleSerializer(
             data=request.data,
             context=context,
-            meta=2
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -102,12 +102,11 @@ class ArticleViewSets(GenericViewSet):
         context = {}
         context = self.get_category(request.data, context)
 
-        serializer = self.serializer_class(
+        serializer = CommonArticleSerializer(
             data=request.data,
             instance=article,
             partial=True,
             context=context,
-            meta=2
         )
         serializer.is_valid(
             raise_exception=True
@@ -177,7 +176,7 @@ class ArticleViewSets(GenericViewSet):
         :param request:
         :return:
         """
-        page = self.pagination_class()
+        page = self.paginator()
         instances = self.queryset.filter(
             publish_status=True
         ).order_by(
@@ -218,7 +217,7 @@ class ArticleViewSets(GenericViewSet):
         except Article.DoesNotExist:
             return custom_response(PARAM_ERROR, 200)
 
-        serializer = self.serializer_class(instance=instance, meta=1)
+        serializer = SimpleArticleSerializer(instance=instance)
         ARTICLE_INFO['data'] = serializer.data
         return custom_response(ARTICLE_INFO, 200)
 
@@ -227,7 +226,7 @@ class ArticleViewSets(GenericViewSet):
             permission_classes=[AllowAny],
             authentication_classes=[])
     def query(self, request):
-        page = self.pagination_class()
+        page = self.paginator()
         try:
             filter_objects = query_combination(request.data)
             instances = self.queryset.filter(
@@ -267,15 +266,17 @@ class CommentViewSets(GenericViewSet):
             article_id = request.query_params['id']
         except (KeyError, ValueError):
             return custom_response(PARAM_ERROR, 200)
-        instance = self.queryset.filter(
+        page = self.paginator()
+        instances = self.queryset.filter(
             article_id=article_id
         ).all()
+        page_list = page.paginate_queryset(instances, request, view=self)
         serializers = self.serializer_class(
-            instance=instance,
+            instance=page_list,
             many=True
         )
 
-        COMMENT_INFO['data'] = serializers.data
+        COMMENT_INFO['data'] = page.get_paginated_data(serializers.data)
         return custom_response(COMMENT_INFO, 200)
 
     def create(self, request):

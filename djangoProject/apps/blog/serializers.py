@@ -150,6 +150,17 @@ class CommentSerializers(serializers.ModelSerializer, UserSerializerMixin):
         return instance
 
 
+class ArticleMeta:
+    model = Article
+    fields = [
+        'user_info', 'id', 'title', 'category_name', 'attached_pictures', 'datetime_created',
+        'category_name', 'publish_status', 'content',
+        'tag', 'datetime_update', 'user_id',
+    ]
+    read_only_fields = ['datetime_created', 'datetime_update', 'id', 'user_id']
+    extra_kwargs = {'publish_status': {'write_only': True}}
+
+
 class ArticleSerializers(serializers.ModelSerializer, AttachedSerializersMixin, UserSerializerMixin,
                          CategorySerializersMixin):
     attached_pictures = serializers.SerializerMethodField()
@@ -158,43 +169,8 @@ class ArticleSerializers(serializers.ModelSerializer, AttachedSerializersMixin, 
     user_info = serializers.SerializerMethodField(read_only=True)
     datetime_created = serializers.DateTimeField(format='%Y年%m月%d日 %H时:%M分:%S秒', read_only=True)
 
-    class Meta:
-        model = Article
-        fields = [
-            'user_info', 'id', 'title', 'category_name', 'attached_pictures', 'datetime_created',
-            'category_name', 'publish_status', 'content',
-            'tag', 'datetime_update', 'user_id',
-        ]
-        read_only_fields = ['datetime_created', 'datetime_update', 'id', 'user_id']
-        extra_kwargs = {'publish_status': {'write_only': True}}
-
-    class SimpleMeta(Meta):
-        fields = [
-            'id', 'title', 'category_name', 'attached_pictures', 'datetime_created',
-            'category_name', 'publish_status', 'content',
-            'tag', 'datetime_update', 'user_id', 'user_info'
-        ]
-        extra_kwargs = {'publish_status': {'write_only': True}, 'user_info': {'write_only': True}}
-
-    class CommonMeta(Meta):
-        fields = [
-            'user_info', 'id', 'title', 'category_name', 'attached_pictures', 'datetime_created',
-            'category_name', 'publish_status', 'content',
-            'tag', 'datetime_update', 'user_id',
-        ]
-
-    def __init__(self, *args, **kwargs):
-        meta = kwargs.pop("meta", False)
-        if not meta:
-            self.Meta = self.Meta
-        elif meta == 1:
-            self.Meta = self.SimpleMeta
-        elif meta == 2:
-            self.Meta = self.CommonMeta
-        else:
-            self.Meta = self.Meta
-
-        super().__init__(*args, **kwargs)
+    class Meta(ArticleMeta):
+        pass
 
     def create(self, validated_data):
         instance = self.Meta.model(
@@ -222,3 +198,22 @@ class ArticleSerializers(serializers.ModelSerializer, AttachedSerializersMixin, 
             instance.__setattr__(k, v)
         instance.save(update_fields=update_fields)
         return instance
+
+
+class SimpleArticleSerializer(ArticleSerializers):
+    class Meta(ArticleMeta):
+        fields = [
+            'id', 'title', 'category_name', 'attached_pictures', 'datetime_created',
+            'category_name', 'publish_status', 'content',
+            'tag', 'datetime_update', 'user_id', 'user_info'
+        ]
+        extra_kwargs = {'publish_status': {'write_only': True}, 'user_info': {'write_only': True}}
+
+
+class CommonArticleSerializer(ArticleSerializers):
+    class Meta(ArticleMeta):
+        fields = [
+            'user_info', 'id', 'title', 'category_name', 'attached_pictures', 'datetime_created',
+            'category_name', 'publish_status', 'content',
+            'tag', 'datetime_update', 'user_id',
+        ]
