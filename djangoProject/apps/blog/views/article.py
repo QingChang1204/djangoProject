@@ -3,8 +3,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.viewsets import GenericViewSet
 from blog.errcode import ARTICLE_INFO, PARAM_ERROR, SUCCESS, COMMENT_INFO
 from blog.models import Article, Comment
-from blog.serializers import ArticleSerializers, CategorySerializers, CommentSerializers, ReplySerializers, \
-    SimpleArticleSerializers, MyArticleSerializers
+from blog.serializers import ArticleSerializers, CategorySerializers, CommentSerializers, ReplySerializers
 from blog.utils import es_search, custom_response, TenPagination, TwentyPagination, CustomAuth
 
 
@@ -56,11 +55,17 @@ class ArticleViewSets(GenericViewSet):
             user=request.user
         ).order_by('-datetime_created').all()
         page_list = page.paginate_queryset(instances, request, view=self)
-        serializers = MyArticleSerializers(
+        serializers = self.serializer_class(
             instance=page_list,
             many=True
         )
+        serializers.child.Meta.fields = ['id', 'title', 'attached_pictures',
+                                         'category_name', 'publish_status', 'content',
+                                         'tag', 'datetime_created', 'datetime_update']
 
+        declared_fields_list = ['attached_pictures', 'category_name', 'datetime_update',
+                                'datetime_created']
+        serializers.child._declared_fields = {k: serializers.child._declared_fields[k] for k in declared_fields_list}
         ARTICLE_INFO['data'] = page.get_paginated_data(serializers.data)
         return custom_response(ARTICLE_INFO, 200)
 
@@ -75,7 +80,8 @@ class ArticleViewSets(GenericViewSet):
 
         serializer = self.serializer_class(
             data=request.data,
-            context=context
+            context=context,
+            meta=2
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -99,7 +105,8 @@ class ArticleViewSets(GenericViewSet):
             data=request.data,
             instance=article,
             partial=True,
-            context=context
+            context=context,
+            meta=2
         )
         serializer.is_valid(
             raise_exception=True
@@ -146,8 +153,12 @@ class ArticleViewSets(GenericViewSet):
         ).all()
         serializers = self.serializer_class(
             instance=articles,
-            many=True
+            many=True,
         )
+        serializers.child.Meta.fields = ['id', 'user_info', 'title', 'category_name', 'attached_pictures',
+                                         'datetime_created']
+        declared_fields_list = ['attached_pictures', 'category_name', 'user_info', 'datetime_created']
+        serializers.child._declared_fields = {k: serializers.child._declared_fields[k] for k in declared_fields_list}
 
         ARTICLE_INFO['data'] = {
             "results": serializers.data,
@@ -172,16 +183,20 @@ class ArticleViewSets(GenericViewSet):
             '-datetime_created'
         ).all()
         page_list = page.paginate_queryset(instances, request, view=self)
-        serializers = SimpleArticleSerializers(
+        serializers = self.serializer_class(
             instance=page_list,
             many=True
         )
+        serializers.child.Meta.fields = ['id', 'user_info', 'title', 'category_name', 'attached_pictures',
+                                         'datetime_created']
+        declared_fields_list = ['attached_pictures', 'category_name', 'user_info', 'datetime_created']
+        serializers.child._declared_fields = {k: serializers.child._declared_fields[k] for k in declared_fields_list}
 
         ARTICLE_INFO['data'] = page.get_paginated_data(serializers.data)
         return custom_response(ARTICLE_INFO, 200)
 
     @action(detail=False,
-            methods=['GET'],
+            methods=['POST'],
             permission_classes=[AllowAny],
             authentication_classes=[])
     def get_article(self, request):
@@ -202,7 +217,7 @@ class ArticleViewSets(GenericViewSet):
         except Article.DoesNotExist:
             return custom_response(PARAM_ERROR, 200)
 
-        serializer = self.serializer_class(instance=instance)
+        serializer = self.serializer_class(instance=instance, meta=1)
         ARTICLE_INFO['data'] = serializer.data
         return custom_response(ARTICLE_INFO, 200)
 
