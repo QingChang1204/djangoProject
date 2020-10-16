@@ -216,6 +216,11 @@ class Comment(models.Model):
         ordering = ["-datetime_created", ]
 
 
+class ReplyManager(models.Manager):
+    def get_queryset(self):
+        return super(ReplyManager, self).get_queryset().select_related('user', 'to_user')
+
+
 class Reply(models.Model):
     comment = models.ForeignKey(
         Comment,
@@ -246,6 +251,7 @@ class Reply(models.Model):
         verbose_name="创建时间",
         auto_now_add=True
     )
+    objects = ReplyManager()
 
 
 class VerifyCode(models.Model):
@@ -270,3 +276,27 @@ class VerifyCode(models.Model):
 
     def code_invalid(self, code):
         return self.code != code
+
+
+class ReceiveMessage(models.Model):
+    user = models.ForeignKey(
+        User,
+        db_constraint=False,
+        on_delete=models.DO_NOTHING,
+        related_name="receive_messages",
+        related_query_name="receive_message"
+    )
+    content = models.TextField(
+        help_text="发送内容"
+    )
+    send_user = models.ForeignKey(
+        User,
+        db_constraint=False,
+        on_delete=models.DO_NOTHING,
+        related_name="send_messages",
+        related_query_name="send_message"
+    )
+    datetime_send = models.DateTimeField(
+        verbose_name="发送时间",
+        auto_now_add=True
+    )

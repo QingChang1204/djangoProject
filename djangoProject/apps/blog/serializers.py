@@ -1,3 +1,4 @@
+from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
 from blog.models import User, Article, Category, Reply, Comment, AttachedPicture
 from blog.tasks import AttachedPictureSerializers, set_attached_picture
@@ -37,16 +38,16 @@ class UserSerializerMixin:
 
     @staticmethod
     def get_user_info(obj):
-        instance = User.objects.filter(
-            id=obj.user_id
-        ).only('icon', 'username').first()
-        if instance is not None:
+        try:
             return {
-                "icon": instance.icon,
-                "username": instance.username
+                "icon": obj.user.icon,
+                "username": obj.user.username
             }
-        else:
-            return None
+        except ObjectDoesNotExist:
+            return {
+                "icon": None,
+                "username": None
+            }
 
 
 class CategorySerializers(serializers.ModelSerializer):
@@ -82,12 +83,9 @@ class CategorySerializersMixin:
 
     @staticmethod
     def get_category_name(obj):
-        instance = Category.objects.filter(
-            id=obj.category_id
-        ).only('category').first()
-        if instance is not None:
-            return instance.category
-        else:
+        try:
+            return obj.category.category
+        except ObjectDoesNotExist:
             return None
 
 
@@ -101,16 +99,10 @@ class ReplySerializers(serializers.ModelSerializer, UserSerializerMixin):
 
     @staticmethod
     def get_to_user_info(obj):
-        instance = User.objects.filter(
-            id=obj.to_user_id
-        ).only('username', 'icon').first()
-        if instance is not None:
-            return {
-                "name": instance.username,
-                "icon": instance.icon
-            }
-        else:
-            return None
+        return {
+            "name": obj.to_user.username,
+            "icon": obj.to_user.icon
+        }
 
     class Meta:
         model = Reply

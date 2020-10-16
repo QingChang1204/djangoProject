@@ -53,7 +53,7 @@ class ArticleViewSets(GenericViewSet):
         :return:
         """
         page = self.paginator
-        instances = self.queryset.filter(
+        instances = self.queryset.select_related('category').filter(
             user=request.user
         ).order_by('-datetime_created').all()
         page_list = page.paginate_queryset(instances, request, view=self)
@@ -177,7 +177,7 @@ class ArticleViewSets(GenericViewSet):
         :return:
         """
         page = self.paginator
-        instances = self.queryset.filter(
+        instances = self.queryset.select_related('user', 'category').filter(
             publish_status=True
         ).order_by(
             '-datetime_created'
@@ -229,7 +229,7 @@ class ArticleViewSets(GenericViewSet):
         page = self.paginator
         try:
             filter_objects = query_combination(request.data)
-            instances = self.queryset.filter(
+            instances = self.queryset.select_related('user', 'category').filter(
                 filter_objects
             ).order_by(
                 '-datetime_created'
@@ -267,7 +267,7 @@ class CommentViewSets(GenericViewSet):
         except (KeyError, ValueError):
             return custom_response(PARAM_ERROR, 200)
         page = self.paginator
-        instances = self.queryset.filter(
+        instances = self.queryset.select_related('user').filter(
             article_id=article_id
         ).all()
         page_list = page.paginate_queryset(instances, request, view=self)
@@ -321,7 +321,7 @@ class CommentViewSets(GenericViewSet):
 
         self.queryset.filter(
             id=comment_id,
-            user_id=request.user.id
+            user=request.user
         ).delete()
 
         return custom_response(SUCCESS, 200)
