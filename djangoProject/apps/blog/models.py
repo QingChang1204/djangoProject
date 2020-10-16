@@ -185,7 +185,7 @@ class AttachedPicture(models.Model):
     objects = ImageManager()
 
     class Meta:
-        index_together = ["attached_id", "attached_table"]
+        index_together = ["attached_id", "attached_table", "status"]
 
 
 class Comment(models.Model):
@@ -218,7 +218,10 @@ class Comment(models.Model):
 
 class ReplyManager(models.Manager):
     def get_queryset(self):
-        return super(ReplyManager, self).get_queryset().select_related('user', 'to_user')
+        return super(ReplyManager, self).get_queryset().select_related('user', 'to_user').only(
+            'user__icon', 'user__username', 'to_user__username', 'to_user__icon',
+            'datetime_created', 'content', 'user_id', 'to_user_id', 'comment_id'
+        )
 
 
 class Reply(models.Model):

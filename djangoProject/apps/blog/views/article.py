@@ -55,6 +55,9 @@ class ArticleViewSets(GenericViewSet):
         page = self.paginator
         instances = self.queryset.select_related('category').filter(
             user=request.user
+        ).only(
+            'category__category', 'id', 'title', 'tag', 'content', 'datetime_created', 'datetime_update',
+            'publish_status'
         ).order_by('-datetime_created').all()
         page_list = page.paginate_queryset(instances, request, view=self)
         serializers = self.serializer_class(
@@ -179,6 +182,8 @@ class ArticleViewSets(GenericViewSet):
         page = self.paginator
         instances = self.queryset.select_related('user', 'category').filter(
             publish_status=True
+        ).only(
+            'user__username', 'category__category', 'user__icon', 'id', 'title', 'datetime_created'
         ).order_by(
             '-datetime_created'
         ).all()
@@ -231,6 +236,8 @@ class ArticleViewSets(GenericViewSet):
             filter_objects = query_combination(request.data)
             instances = self.queryset.select_related('user', 'category').filter(
                 filter_objects
+            ).only(
+                'id', 'title', 'user__username', 'user__icon', 'category__category', 'datetime_created'
             ).order_by(
                 '-datetime_created'
             ).all()
