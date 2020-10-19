@@ -123,14 +123,27 @@ class CommentSerializers(serializers.ModelSerializer, UserSerializerMixin):
     user_info = serializers.SerializerMethodField(read_only=True)
     user_id = serializers.IntegerField()
     article_id = serializers.IntegerField(write_only=True)
-    replies = ReplySerializers(many=True, read_only=True)
+    reply = serializers.SerializerMethodField(read_only=True)
     datetime_created = serializers.DateTimeField(format='%Y年%m月%d日 %H时:%M分:%S秒', read_only=True)
+
+    @staticmethod
+    def get_reply(obj):
+        return_list = []
+        try:
+            for reply in obj.replies.all():
+                return_list.append({
+                    "to_user_id": reply.to_user.username,
+                    "to_user_icon": reply.to_user.icon,
+                })
+            return return_list
+        except ObjectDoesNotExist:
+            return
 
     class Meta:
         model = Comment
         fields = [
             'id', 'user_id', 'user_info', 'article_id',
-            'content', 'replies', 'datetime_created'
+            'content', 'reply', 'datetime_created'
         ]
         read_only_fields = ['id']
 

@@ -1,8 +1,9 @@
+from django.db.models import Prefetch
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.viewsets import GenericViewSet
 from blog.errcode import ARTICLE_INFO, PARAM_ERROR, SUCCESS, COMMENT_INFO
-from blog.models import Article, Comment
+from blog.models import Article, Comment, Reply
 from blog.serializers import ArticleSerializers, CategorySerializers, CommentSerializers, ReplySerializers, \
     SimpleArticleSerializer, CommonArticleSerializer
 from blog.utils import es_search, custom_response, TenPagination, TwentyPagination, CustomAuth, query_combination, \
@@ -25,7 +26,7 @@ class ArticleViewSets(GenericViewSet):
             instance_id = int(self.request.data.pop('id', None))
         except (ValueError, TypeError, AttributeError):
             raise Article.DoesNotExist
-        instance = self.queryset.get(
+        instance = self.queryset.only('id').get(
             id=instance_id,
             user=self.request.user
         )
@@ -53,11 +54,11 @@ class ArticleViewSets(GenericViewSet):
         :return:
         """
         page = self.paginator
-        instances = self.queryset.select_related('category').filter(
+        instances = self.queryset.select_related('category', 'user').filter(
             user=request.user
         ).only(
-            'category__category', 'id', 'title', 'tag', 'content', 'datetime_created', 'datetime_update',
-            'publish_status'
+            'id', 'title', 'user__username', 'user__icon', 'category__category', 'datetime_created',
+            'datetime_update', 'publish_status', 'title', 'content', 'publish_status', 'tag'
         ).order_by('-datetime_created').all()
         page_list = page.paginate_queryset(instances, request, view=self)
         serializers = self.serializer_class(
@@ -151,7 +152,12 @@ class ArticleViewSets(GenericViewSet):
         article_id_list = []
         for res in res_dict['hits']['hits']:
             article_id_list.append(res['_id'])
-        articles = self.queryset.filter(
+        articles = self.queryset.select_related(
+            'user', 'category'
+        ).only(
+            'id', 'title', 'datetime_update', 'user__icon', 'user__username',
+            'category__category'
+        ).filter(
             id__in=article_id_list
         ).all()
         serializers = self.serializer_class(
@@ -215,7 +221,13 @@ class ArticleViewSets(GenericViewSet):
         except (KeyError, ValueError, AttributeError):
             return custom_response(PARAM_ERROR, 200)
         try:
-            instance = self.queryset.get(
+            instance = self.queryset.select_related(
+                'category', 'user'
+            ).only(
+                'id', 'title', 'datetime_created', 'user_id',
+                'tag', 'content', 'datetime_update', 'publish_status',
+                'user__username', 'user__icon', 'category__category'
+            ).get(
                 id=article_id,
                 publish_status=True
             )
@@ -237,7 +249,8 @@ class ArticleViewSets(GenericViewSet):
             instances = self.queryset.select_related('user', 'category').filter(
                 filter_objects
             ).only(
-                'id', 'title', 'user__username', 'user__icon', 'category__category', 'datetime_created'
+                'id', 'title', 'user__username', 'user__icon', 'category__category', 'datetime_created',
+                'datetime_update', 'publish_status', 'title', 'content', 'publish_status', 'tag'
             ).order_by(
                 '-datetime_created'
             ).all()
@@ -274,7 +287,13 @@ class CommentViewSets(GenericViewSet):
         except (KeyError, ValueError):
             return custom_response(PARAM_ERROR, 200)
         page = self.paginator
-        instances = self.queryset.select_related('user').filter(
+        instances = self.queryset.select_related('user').prefetch_related(
+            Prefetch('replies', queryset=Reply.objects.only(
+                'to_user__icon', 'to_user__username', 'user__username', 'comment_id'
+            ))
+        ).only(
+            'user__icon', 'user__username', 'datetime_created', 'article_id', 'user_id', 'content'
+        ).filter(
             article_id=article_id
         ).all()
         page_list = page.paginate_queryset(instances, request, view=self)
