@@ -1,7 +1,9 @@
 from django.db.models.signals import pre_save, pre_delete, post_save
 from django.dispatch import receiver
-from blog.models import Article, Comment, User
+from blog.models import Article, Comment, User, ReceiveMessage
 from blog.tasks import search_article, delete_attached_picture, synchronous_username
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 
 
 @receiver(post_save, sender=Article)
@@ -47,3 +49,17 @@ def article_synchronous_username(**kwargs):
             id=instance.id
         ).only('username').first()
         synchronous_username.delay(old_instance.username, instance.username)
+
+
+@receiver(post_save, sender=ReceiveMessage)
+def send_message(**kwargs):
+    instance = kwargs['instance']
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        "message_{}".format(instance.user_id),
+        {
+            "type": "chat.message",
+            "message": instance.content,
+            "send_user": instance.send_user_id
+        }
+    )

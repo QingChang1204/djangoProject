@@ -7,7 +7,7 @@ import re
 from rest_framework.viewsets import GenericViewSet
 from rest_framework_simplejwt.tokens import RefreshToken
 from blog.errcode import USER_INFO, EMAIL_FORMAT_ERROR, EXISTED_USER_NAME, TOKEN, PARAM_ERROR, SUCCESS
-from blog.models import User
+from blog.models import User, ReceiveMessage
 from blog.serializers import BlogUserSerializers
 from blog.utils import custom_response, CustomAuth
 
@@ -109,3 +109,20 @@ class UserViewSets(GenericViewSet):
             'refresh': "Bearer " + str(token)
         }
         return custom_response(TOKEN, 200)
+
+    @action(detail=False,
+            methods=['POST'],
+            permission_classes=[IsAuthenticated],
+            authentication_classes=[CustomAuth])
+    def message(self, request):
+        try:
+            content = request.data['content']
+            user_id = int(request.data['user_id'])
+        except (KeyError, ValueError, TypeError):
+            return custom_response(PARAM_ERROR, 200)
+        ReceiveMessage.objects.create(
+            user_id=user_id,
+            send_user_id=request.user.id,
+            content=content
+        )
+        return custom_response(SUCCESS, 200)
