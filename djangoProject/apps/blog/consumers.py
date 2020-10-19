@@ -53,6 +53,17 @@ class NotificationConsumer(AsyncJsonWebsocketConsumer):
                 ), self.channel_name
             )
 
+    async def receive(self, text_data=None, bytes_data=None, **kwargs):
+        if text_data:
+            await self.receive_json(await self.decode_json(text_data), **kwargs)
+        else:
+            await self.channel_layer.group_discard(
+                self.group_name.format(
+                    self.scope['user'].id
+                ), self.channel_name
+            )
+            await self.close()
+
     async def receive_json(self, content, **kwargs):
         try:
             receive_content = content['content']
