@@ -293,4 +293,4 @@ CELERY_QUEUES = {
 }
 ASGI_APPLICATION = 'djangoProject.routing.application'
 
-CONN_MAX_AGE = 60
+CONN_MAX_AGE = 600
