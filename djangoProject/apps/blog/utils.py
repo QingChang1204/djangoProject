@@ -136,8 +136,7 @@ def custom_exception_handler(exception, context):
         response.data['status_code'] = response.status_code
 
     if not settings.DEBUG:
-
-        if response.data['status_code'] == 403:
+        if response is None or response.data['status_code'] == 403:
             return custom_response(
                 NO_PERMISSION, 403
             )
@@ -178,7 +177,7 @@ class CustomAuth(JWTAuthentication):
             'is_active', 'is_staff', 'is_superuser', 'id'
         ).first()
 
-        if not user.is_active:
+        if user is None or not user.is_active:
             raise AuthenticationFailed('User is inactive', code='user_inactive')
 
         return user
