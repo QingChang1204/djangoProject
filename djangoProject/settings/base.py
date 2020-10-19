@@ -59,7 +59,8 @@ CUSTOM_APPS = [
     'blog'
 ]
 THIRD_APPS = [
-    'rest_framework'
+    'rest_framework',
+    'channels'
 ]
 
 INSTALLED_APPS = INSTALLED_APPS + CUSTOM_APPS + THIRD_APPS
@@ -290,3 +291,6 @@ CELERY_QUEUES = {
     Queue(DAILY_QUEUE, DAILY_QUEUE, DAILY_QUEUE),
     Queue(SIGNAL_QUEUE, SIGNAL_QUEUE, SIGNAL_QUEUE)
 }
+ASGI_APPLICATION = 'djangoProject.routing.application'
+
+CONN_MAX_AGE = 60
