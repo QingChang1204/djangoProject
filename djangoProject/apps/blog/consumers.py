@@ -1,5 +1,5 @@
 import json
-
+from json.decoder import JSONDecodeError
 from channels.db import database_sync_to_async
 from channels.exceptions import AcceptConnection, DenyConnection
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
@@ -48,15 +48,29 @@ class NotificationConsumer(AsyncJsonWebsocketConsumer):
             pass
         else:
             await self.channel_layer.group_discard(
-                self.group_name, self.channel_name
+                self.group_name.format(
+                    self.scope['user'].id
+                ), self.channel_name
             )
 
     async def receive_json(self, content, **kwargs):
-        await set_message(
-            send_user_id=self.scope['user'].id,
-            content=content['content'],
-            user_id=content['user_id']
-        )
+        try:
+            receive_content = content['content']
+            user_id = content['user_id']
+        except (TypeError, KeyError):
+            await self.channel_layer.group_discard(
+                self.group_name.format(
+                    self.scope['user'].id
+                ), self.channel_name
+            )
+            await self.close()
+        else:
+
+            await set_message(
+                send_user_id=self.scope['user'].id,
+                content=receive_content,
+                user_id=user_id
+            )
 
     async def chat_message(self, event):
         close_old_connections()
@@ -70,3 +84,10 @@ class NotificationConsumer(AsyncJsonWebsocketConsumer):
     @classmethod
     async def encode_json(cls, text_data):
         return json.dumps(text_data, ensure_ascii=False)
+
+    @classmethod
+    async def decode_json(cls, text_data):
+        try:
+            return json.loads(text_data)
+        except JSONDecodeError:
+            pass
