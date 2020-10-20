@@ -118,16 +118,24 @@ def set_attached_picture(images, attached_table, attached_id):
     :param attached_id:
     :return:
     """
-    image_serializers = AttachedPictureSerializers(
-        data=images,
-        many=True,
-        attached_table=attached_table,
-        attached_id=attached_id
-    )
-    image_serializers.is_valid(raise_exception=True)
-    image_serializers.save()
-    if image_serializers.child.get_old_instance_id_list:
-        image_serializers.child.remove_old_instance()
+    if not images:
+        AttachedPicture.objects.filter(
+            attached_id=attached_id,
+            attached_table=attached_table
+        ).update(
+            status=False
+        )
+    else:
+        image_serializers = AttachedPictureSerializers(
+            data=images,
+            many=True,
+            attached_table=attached_table,
+            attached_id=attached_id
+        )
+        image_serializers.is_valid(raise_exception=True)
+        image_serializers.save()
+        if image_serializers.child.get_old_instance_id_list:
+            image_serializers.child.remove_old_instance()
 
 
 @current_app.task(base=PeriodicTask, run_every=(crontab(minute=1, hour=0)), ignore_result=True, name='blog_daily.test')

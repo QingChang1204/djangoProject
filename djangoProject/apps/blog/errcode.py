@@ -78,6 +78,12 @@ TOKEN = {
     "detail": " token info "
 }
 
+WEB_SOCKET_TOKEN = {
+    "err_code": 1007,
+    "data": {},
+    "detail": " web socket token"
+}
+
 # 文章相关
 
 ARTICLE_INFO = {
