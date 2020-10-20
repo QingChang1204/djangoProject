@@ -303,3 +303,14 @@ class ReceiveMessage(models.Model):
         verbose_name="发送时间",
         auto_now_add=True
     )
+
+
+class WebSocketTicket(models.Model):
+    user = models.ForeignKey(
+        User,
+        db_constraint=False,
+        on_delete=models.DO_NOTHING,
+        related_name="web_tickets",
+        related_query_name="web_ticket"
+    )
+    ticket = models.CharField(max_length=36, null=True)
