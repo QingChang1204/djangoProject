@@ -1,3 +1,5 @@
+import uuid
+
 from django.contrib.auth import authenticate
 from django.db import IntegrityError
 from django.utils import timezone
@@ -6,8 +8,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 import re
 from rest_framework.viewsets import GenericViewSet
 from rest_framework_simplejwt.tokens import RefreshToken
-from blog.errcode import USER_INFO, EMAIL_FORMAT_ERROR, EXISTED_USER_NAME, TOKEN, PARAM_ERROR, SUCCESS
-from blog.models import User, ReceiveMessage
+from blog.errcode import USER_INFO, EMAIL_FORMAT_ERROR, EXISTED_USER_NAME, TOKEN, PARAM_ERROR, SUCCESS, WEB_SOCKET_TOKEN
+from blog.models import User, ReceiveMessage, WebSocketTicket
 from blog.serializers import BlogUserSerializers
 from blog.utils import custom_response, CustomAuth
 
@@ -126,3 +128,24 @@ class UserViewSets(GenericViewSet):
             content=content
         )
         return custom_response(SUCCESS, 200)
+
+    @action(detail=False,
+            methods=['POST'],
+            permission_classes=[IsAuthenticated],
+            authentication_classes=[CustomAuth])
+    def get_ticket(self, request):
+        user = request.user
+        ticket, _ = WebSocketTicket.objects.get_or_create(
+            user=user,
+        )
+        if _:
+            ticket.ticket = uuid.uuid4()
+            ticket.save(
+                update_fields=[
+                    'ticket'
+                ]
+            )
+        WEB_SOCKET_TOKEN['data'] = {
+            'ticket': str(ticket.ticket)
+        }
+        return custom_response(WEB_SOCKET_TOKEN, 200)
