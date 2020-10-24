@@ -184,14 +184,14 @@ class ArticleSerializers(serializers.ModelSerializer, AttachedSerializersMixin, 
             category=self.context['category']
         )
         instance.save()
-        if self.initial_data.get('images', False):
+        if self.initial_data.get('images', None) is not None:
             set_attached_picture.delay(self.initial_data['images'], "article", instance.id)
 
         return instance
 
     def update(self, instance, validated_data):
         update_fields = []
-        if self.initial_data.get('images', False):
+        if self.initial_data.get('images', None) is not None:
             set_attached_picture.delay(self.initial_data['images'], "article", instance.id)
 
         if self.context.get('category', False):
