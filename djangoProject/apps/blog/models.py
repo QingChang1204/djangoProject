@@ -149,10 +149,9 @@ class ImageManager(models.Manager):
     def get_queryset(self):
         return super(ImageManager, self).get_queryset().filter(status=True)
 
-    def stealth_delete(self, attached_id, attached_table, old_id_list=False):
+    def stealth_delete(self, foreign_key, old_id_list=False):
         filter_objects = Q(
-            Q(attached_id=attached_id) &
-            Q(attached_table=attached_table) &
+            Q(**foreign_key) &
             Q(status=True)
         )
 
@@ -169,23 +168,26 @@ class ImageManager(models.Manager):
 
 
 class AttachedPicture(models.Model):
-    attached_id = models.IntegerField(
-        verbose_name="附属ID"
-    )
-    attached_table = models.CharField(
-        verbose_name="附属表",
-        max_length=20
-    )
     image = models.URLField(
         verbose_name="文章图片"
     )
     status = models.BooleanField(
-        default=True
+        default=True,
+        db_index=True
     )
     objects = ImageManager()
 
     class Meta:
-        index_together = ["attached_id", "attached_table", "status"]
+        abstract = True
+
+
+class ArticleImages(AttachedPicture):
+    article = models.ForeignKey(
+        Article,
+        db_constraint=False,
+        on_delete=models.DO_NOTHING,
+        related_name="images"
+    )
 
 
 class Comment(models.Model):

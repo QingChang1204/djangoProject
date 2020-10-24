@@ -35,8 +35,8 @@ class UserViewSets(GenericViewSet):
 
     @action(detail=False,
             methods=['POST'],
-            permission_classes=[AllowAny],
-            authentication_classes=[])
+            permission_classes=[AllowAny | IsAuthenticated],
+            authentication_classes=[CustomAuth])
     def sign_up(self, request):
         """
         用户注册接口
@@ -92,8 +92,8 @@ class UserViewSets(GenericViewSet):
 
     @action(detail=False,
             methods=['POST'],
-            permission_classes=[AllowAny],
-            authentication_classes=[])
+            permission_classes=[AllowAny | IsAuthenticated],
+            authentication_classes=[CustomAuth])
     def log_in(self, request):
         """
         用户登录接口

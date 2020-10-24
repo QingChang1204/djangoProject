@@ -3,7 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.viewsets import GenericViewSet
 from blog.errcode import ARTICLE_INFO, PARAM_ERROR, SUCCESS, COMMENT_INFO
-from blog.models import Article, Comment, Reply
+from blog.models import Article, Comment, Reply, ArticleImages
 from blog.serializers import ArticleSerializers, CategorySerializers, CommentSerializers, ReplySerializers, \
     SimpleArticleSerializer, CommonArticleSerializer
 from blog.utils import es_search, custom_response, TenPagination, TwentyPagination, CustomAuth, query_combination, \
@@ -17,18 +17,18 @@ class ArticleViewSets(GenericViewSet):
     serializer_class = ArticleSerializers
     pagination_class = TenPagination
 
-    def get_object(self):
+    def get_article(self, request):
         """
         获取models对象
         :return:
         """
         try:
-            instance_id = int(self.request.data.pop('id', None))
+            instance_id = int(request.data.pop('id', None))
         except (ValueError, TypeError, AttributeError):
             raise Article.DoesNotExist
         instance = self.queryset.only('id').get(
             id=instance_id,
-            user=self.request.user
+            user=request.user
         )
         return instance
 
@@ -54,7 +54,11 @@ class ArticleViewSets(GenericViewSet):
         :return:
         """
         page = self.paginator
-        instances = self.queryset.select_related('category', 'user').filter(
+        instances = self.queryset.select_related('category', 'user').prefetch_related(
+            Prefetch('images', queryset=ArticleImages.objects.only(
+                'id', 'image', 'article_id'
+            ))
+        ).filter(
             user=request.user
         ).only(
             'id', 'title', 'user__username', 'user__icon', 'category__category', 'datetime_created',
@@ -93,14 +97,18 @@ class ArticleViewSets(GenericViewSet):
 
         return custom_response(SUCCESS, 200)
 
-    def put(self, request):
+    @action(detail=False,
+            methods=['POST'],
+            permission_classes=[IsAuthenticated],
+            authentication_classes=[CustomAuth])
+    def update_article(self, request):
         """
         修改文章
         :param request:
         :return:
         """
         try:
-            article = self.get_object()
+            article = self.get_article(request)
         except Article.DoesNotExist:
             return custom_response(PARAM_ERROR, 200)
         context = {}
@@ -119,14 +127,18 @@ class ArticleViewSets(GenericViewSet):
 
         return custom_response(SUCCESS, 200)
 
-    def delete(self, request):
+    @action(detail=False,
+            methods=['POST'],
+            permission_classes=[IsAuthenticated],
+            authentication_classes=[CustomAuth])
+    def delete_article(self, request):
         """
         删除文章
         :param request:
         :return:
         """
         try:
-            article = self.get_object()
+            article = self.get_article(request)
         except Article.DoesNotExist:
             return custom_response(PARAM_ERROR, 200)
         article.delete()
@@ -135,9 +147,9 @@ class ArticleViewSets(GenericViewSet):
 
     @action(detail=False,
             methods=['POST'],
-            permission_classes=[AllowAny],
-            authentication_classes=[])
-    def search(self, request):
+            permission_classes=[AllowAny | IsAuthenticated],
+            authentication_classes=[CustomAuth])
+    def search_article(self, request):
         """
         搜索文章
         :param request:
@@ -154,6 +166,10 @@ class ArticleViewSets(GenericViewSet):
             article_id_list.append(res['_id'])
         articles = self.queryset.select_related(
             'user', 'category'
+        ).prefetch_related(
+            Prefetch('images', queryset=ArticleImages.objects.only(
+                'id', 'image', 'article_id'
+            ))
         ).only(
             'id', 'title', 'datetime_update', 'user__icon', 'user__username',
             'category__category'
@@ -177,16 +193,20 @@ class ArticleViewSets(GenericViewSet):
 
     @action(detail=False,
             methods=['GET'],
-            permission_classes=[AllowAny],
-            authentication_classes=[])
-    def all_article(self, request):
+            permission_classes=[AllowAny | IsAuthenticated],
+            authentication_classes=[CustomAuth])
+    def all_article_info(self, request):
         """
         查看所有文章
         :param request:
         :return:
         """
         page = self.paginator
-        instances = self.queryset.select_related('user', 'category').filter(
+        instances = self.queryset.select_related('user', 'category').prefetch_related(
+            Prefetch('images', queryset=ArticleImages.objects.only(
+                'id', 'image', 'article_id'
+            ))
+        ).filter(
             publish_status=True
         ).only(
             'user__username', 'category__category', 'user__icon', 'id', 'title', 'datetime_created'
@@ -208,9 +228,9 @@ class ArticleViewSets(GenericViewSet):
 
     @action(detail=False,
             methods=['POST'],
-            permission_classes=[AllowAny],
-            authentication_classes=[])
-    def get_article(self, request):
+            permission_classes=[AllowAny | IsAuthenticated],
+            authentication_classes=[CustomAuth])
+    def get_article_info(self, request):
         """
         查看一篇文章
         :param request:
@@ -223,6 +243,10 @@ class ArticleViewSets(GenericViewSet):
         try:
             instance = self.queryset.select_related(
                 'category', 'user'
+            ).prefetch_related(
+                Prefetch('images', queryset=ArticleImages.objects.only(
+                    'id', 'image', 'article_id'
+                ))
             ).only(
                 'id', 'title', 'datetime_created', 'user_id',
                 'tag', 'content', 'datetime_update', 'publish_status',
@@ -240,13 +264,17 @@ class ArticleViewSets(GenericViewSet):
 
     @action(detail=False,
             methods=['POST'],
-            permission_classes=[AllowAny],
-            authentication_classes=[])
-    def query(self, request):
+            permission_classes=[AllowAny | IsAuthenticated],
+            authentication_classes=[CustomAuth])
+    def query_article(self, request):
         page = self.paginator
         try:
             filter_objects = query_combination(request.data)
-            instances = self.queryset.select_related('user', 'category').filter(
+            instances = self.queryset.select_related('user', 'category').prefetch_related(
+                Prefetch('images', queryset=ArticleImages.objects.only(
+                    'id', 'image', 'article_id'
+                ))
+            ).filter(
                 filter_objects
             ).only(
                 'id', 'title', 'user__username', 'user__icon', 'category__category', 'datetime_created',
@@ -319,8 +347,11 @@ class CommentViewSets(GenericViewSet):
         COMMENT_INFO['data'] = serializer.data
         return custom_response(COMMENT_INFO, 200)
 
-    @staticmethod
-    def put(request):
+    @action(detail=False,
+            methods=['POST'],
+            permission_classes=[IsAuthenticated],
+            authentication_classes=[CustomAuth])
+    def reply(self, request):
         """
         回复评论
         :param request:
@@ -334,7 +365,11 @@ class CommentViewSets(GenericViewSet):
         COMMENT_INFO['data'] = serializer.data
         return custom_response(COMMENT_INFO, 200)
 
-    def delete(self, request):
+    @action(detail=False,
+            methods=['POST'],
+            permission_classes=[IsAuthenticated],
+            authentication_classes=[CustomAuth])
+    def delete_comment(self, request):
         """
         删除评论
         :param request:

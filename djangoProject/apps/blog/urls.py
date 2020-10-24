@@ -9,6 +9,4 @@ router.register("user", UserViewSets)
 router.register("article", ArticleViewSets)
 router.register("comment", CommentViewSets)
 
-urlpatterns = [
-    path("", include(router.urls))
-]
+urlpatterns = router.urls
