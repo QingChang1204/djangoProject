@@ -1,56 +1,22 @@
 from __future__ import absolute_import, unicode_literals
 
 from celery.schedules import crontab
+from django.db.models import Q
 from rest_framework import serializers
 from djangoProject.celery import app as current_app
 from celery.task import Task, PeriodicTask
-from blog.models import AttachedPicture, Reply
+from blog.models import Reply, ArticleImages
 from blog.utils import es_search, logger
 
 
-class AttachedPictureSerializers(serializers.ModelSerializer):
-    id = serializers.IntegerField(required=False, allow_null=True)
-
-    def __init__(self, *args, **kwargs):
-        self.old_instance_id_list = []
-        self.new_instance_id_list = []
-        self.__class__.old_instance_id_list = self.old_instance_id_list
-        self.attached_table = kwargs.pop('attached_table', None)
-        self.attached_id = kwargs.pop('attached_id', None)
-        super(AttachedPictureSerializers, self).__init__(*args, **kwargs)
-
-    def get_old_instance_id_list(self):
-        return self.old_instance_id_list
+class ArticleImagesSerializers(serializers.ModelSerializer):
+    id = serializers.IntegerField(required=False)
 
     class Meta:
-        model = AttachedPicture
+        model = ArticleImages
         fields = [
             'image', 'id'
         ]
-
-    def create(self, validated_data):
-        pic_id = validated_data.pop('id', None)
-        if pic_id is not None:
-            self.old_instance_id_list.append(pic_id)
-            pass
-        else:
-            instance = self.Meta.model(
-                **validated_data,
-                attached_id=self.attached_id,
-                attached_table=self.attached_table
-            )
-            instance.save()
-            self.new_instance_id_list.append(instance.id)
-            return instance
-
-    def remove_old_instance(self):
-        self.Meta.model.objects.stealth_delete(
-            attached_id=self.attached_id,
-            attached_table=self.attached_table,
-            old_id_list=self.old_instance_id_list + self.new_instance_id_list
-        )
-        self.old_instance_id_list = []
-        self.new_instance_id_list = []
 
 
 @current_app.task(name='blog_signal.search_article', base=Task)
@@ -79,11 +45,18 @@ def delete_attached_picture(attached_table, attached_id):
     :param attached_id:
     :return:
     """
-    AttachedPicture.objects.stealth_delete(
-        attached_table=attached_table,
-        attached_id=attached_id
-    )
-    es_search.delete_search(article_id=attached_id)
+    if attached_table == 'article':
+        ArticleImages.objects.stealth_delete(
+            foreign_key={
+                'article_id': attached_id
+            }
+        )
+        es_search.delete_search(article_id=attached_id)
+    else:
+        logger.info(
+            "删除附属图片传输数据错误"
+        )
+        pass
 
 
 @current_app.task(name='blog_signal.delete_reply', base=Task)
@@ -118,24 +91,63 @@ def set_attached_picture(images, attached_table, attached_id):
     :param attached_id:
     :return:
     """
+    if attached_table == 'article':
+        model = ArticleImages
+        serializer = ArticleImagesSerializers
+        extra_args = {
+            "article_id": attached_id
+        }
+    else:
+        raise Exception(
+            "传输数据错误"
+        )
+    old_id_list = []
+    old_instance = []
+    new_instance = []
     if not images:
-        AttachedPicture.objects.filter(
-            attached_id=attached_id,
-            attached_table=attached_table
+        model.objects.filter(
+            **extra_args,
+            status=True
         ).update(
             status=False
         )
     else:
-        image_serializers = AttachedPictureSerializers(
+        image_serializers = serializer(
             data=images,
-            many=True,
-            attached_table=attached_table,
-            attached_id=attached_id
+            many=True
         )
         image_serializers.is_valid(raise_exception=True)
-        image_serializers.save()
-        if image_serializers.child.get_old_instance_id_list:
-            image_serializers.child.remove_old_instance()
+
+        for data in image_serializers.data:
+            if data.get('id', None) is not None:
+                old_instance.append(
+                    model(**data, **extra_args)
+                )
+                old_id_list.append(data['id'])
+            else:
+                new_instance.append(
+                    model(**data, **extra_args)
+                )
+
+        if model.objects.filter(
+                ~Q(**extra_args),
+                id__in=old_id_list
+        ).exists():
+            raise Exception(
+                "非法ID"
+            )
+        else:
+            model.objects.stealth_delete(
+                foreign_key=extra_args,
+                old_id_list=old_id_list
+            )
+
+            model.objects.bulk_create(
+                new_instance
+            )
+            model.objects.bulk_update(
+                old_instance,  fields=['image']
+            )
 
 
 @current_app.task(base=PeriodicTask, run_every=(crontab(minute=1, hour=0)), ignore_result=True, name='blog_daily.test')

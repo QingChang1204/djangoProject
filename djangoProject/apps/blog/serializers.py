@@ -1,7 +1,7 @@
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
-from blog.models import User, Article, Category, Reply, Comment, AttachedPicture
-from blog.tasks import AttachedPictureSerializers, set_attached_picture
+from blog.models import User, Article, Category, Reply, Comment
+from blog.tasks import set_attached_picture
 
 
 class BlogUserSerializers(serializers.ModelSerializer):
@@ -66,17 +66,11 @@ class AttachedSerializersMixin:
 
     @staticmethod
     def get_attached_pictures(obj):
-        instance = AttachedPicture.objects.filter(
-            attached_table="article",
-            attached_id=obj.id
-        ).only('image', 'id').all()
-
-        serializer = AttachedPictureSerializers(
-            instance=instance,
-            many=True
-        )
-
-        return serializer.data
+        try:
+            img_list = [{"id": image.id, "image": image.image} for image in obj.images.all()]
+            return img_list
+        except ObjectDoesNotExist:
+            return []
 
 
 class CategorySerializersMixin:
