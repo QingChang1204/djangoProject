@@ -1,4 +1,4 @@
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Count
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.viewsets import GenericViewSet
@@ -319,6 +319,10 @@ class CommentViewSets(GenericViewSet):
             Prefetch('replies', queryset=Reply.objects.only(
                 'to_user__icon', 'to_user__username', 'user__username', 'comment_id'
             ))
+        ).annotate(
+            reply_count=Count(
+                'reply'
+            )
         ).only(
             'user__icon', 'user__username', 'datetime_created', 'article_id', 'user_id', 'content'
         ).filter(
@@ -382,6 +386,28 @@ class CommentViewSets(GenericViewSet):
 
         self.queryset.filter(
             id=comment_id,
+            user=request.user
+        ).delete()
+
+        return custom_response(SUCCESS, 200)
+
+    @action(detail=False,
+            methods=['POST'],
+            permission_classes=[IsAuthenticated],
+            authentication_classes=[CustomAuth])
+    def delete_reply(self, request):
+        """
+        删除评论
+        :param request:
+        :return:
+        """
+        try:
+            reply_id = int(request.data['id'])
+        except (KeyError, ValueError, AttributeError):
+            return custom_response(PARAM_ERROR, 200)
+
+        Reply.objects.filter(
+            id=reply_id,
             user=request.user
         ).delete()
 

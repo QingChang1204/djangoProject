@@ -118,7 +118,12 @@ class CommentSerializers(serializers.ModelSerializer, UserSerializerMixin):
     user_id = serializers.IntegerField()
     article_id = serializers.IntegerField(write_only=True)
     reply = serializers.SerializerMethodField(read_only=True)
+    reply_count = serializers.SerializerMethodField(read_only=True)
     datetime_created = serializers.DateTimeField(format='%Y年%m月%d日 %H时:%M分:%S秒', read_only=True)
+
+    @staticmethod
+    def get_reply_count(obj):
+        return obj.reply_count
 
     @staticmethod
     def get_reply(obj):
@@ -137,7 +142,7 @@ class CommentSerializers(serializers.ModelSerializer, UserSerializerMixin):
         model = Comment
         fields = [
             'id', 'user_id', 'user_info', 'article_id',
-            'content', 'reply', 'datetime_created'
+            'content', 'reply_count', 'reply', 'datetime_created',
         ]
         read_only_fields = ['id']
 
