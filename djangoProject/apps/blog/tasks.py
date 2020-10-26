@@ -6,7 +6,7 @@ from rest_framework import serializers
 from djangoProject.celery import app as current_app
 from celery.task import Task, PeriodicTask
 from blog.models import Reply, ArticleImages
-from blog.utils import es_search, logger
+from blog.utils import es_search, logger, robot_send_alert
 
 
 class ArticleImagesSerializers(serializers.ModelSerializer):
@@ -150,6 +150,21 @@ def set_attached_picture(images, attached_table, attached_id):
             )
 
 
-@current_app.task(base=PeriodicTask, run_every=(crontab(minute=1, hour=0)), ignore_result=True, name='blog_daily.test')
-def daily():
-    logger.info("daily")
+@current_app.task(
+    base=PeriodicTask, run_every=(crontab(minute=0, hour=8)), ignore_result=True, name='blog_daily.morning_message'
+)
+def morning_message():
+    robot_send_alert(
+        title="早安",
+        content="早安，打工人！",
+    )
+
+
+@current_app.task(
+    base=PeriodicTask, run_every=(crontab(minute=0, hour=23)), ignore_result=True, name='blog_daily.night_message'
+)
+def night_message():
+    robot_send_alert(
+        title="晚安",
+        content="晚安，打工人！",
+    )

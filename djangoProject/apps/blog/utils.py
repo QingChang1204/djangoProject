@@ -5,6 +5,7 @@ import uuid
 import datetime
 from collections import OrderedDict
 
+import requests
 from django.db.models import Q
 from django.shortcuts import render
 from elasticsearch_dsl import Search, Document, Text, Boolean, Date, Keyword, UpdateByQuery
@@ -362,3 +363,26 @@ class SearchByEs:
 
 
 es_search = SearchByEs()
+
+
+def robot_send_alert(title, content):
+    alert_url = settings.ROBOT_HOOK_URL
+
+    if content == "":
+        return False
+
+    headers = {
+        'Content-Type': 'application/json'
+    }
+
+    data = {
+        'msgtype': 'markdown',
+        'markdown': {
+            "title": title,
+            "text": content
+        }
+    }
+
+    requests.post(alert_url, json=data, headers=headers)
+
+    return True
