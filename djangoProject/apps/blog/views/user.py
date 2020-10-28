@@ -233,5 +233,17 @@ class UserViewSets(GenericViewSet):
             USER_ACTIVITY['data'] = page.get_paginated_data(serializers.data)
 
             return custom_response(USER_ACTIVITY, 200)
+        elif request.method == "DELETE":
+            data = request.data
+            try:
+                activity_id = int(data['id'])
+            except (KeyError, ValueError, TypeError):
+                return custom_response(PARAM_ERROR, 200)
+            Activity.objects.filter(
+                user=user,
+                id=activity_id
+            ).delete()
+
+            return custom_response(SUCCESS, 200)
         else:
             return custom_response(PARAM_ERROR, 200)
