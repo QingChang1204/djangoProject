@@ -84,6 +84,20 @@ WEB_SOCKET_TOKEN = {
     "detail": " web socket token"
 }
 
+
+USER_ACTIVITY = {
+    "err_code": 1008,
+    "data": {},
+    "detail": " user activity "
+}
+
+
+MUST_LOG_IN = {
+    "err_code": 1009,
+    "data": {},
+    "detail": " user activity "
+}
+
 # 文章相关
 
 ARTICLE_INFO = {
