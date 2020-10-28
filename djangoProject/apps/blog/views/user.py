@@ -104,7 +104,11 @@ class UserViewSets(GenericViewSet):
         :param request:
         :return:
         """
-        blog_user = authenticate(username=request.data['username'], password=request.data['password'])
+        try:
+            blog_user = authenticate(username=request.data['username'], password=request.data['password'])
+        except KeyError:
+            return custom_response(PARAM_ERROR, 200)
+
         blog_user.last_login = timezone.now()
         blog_user.save(update_fields=['last_login', ])
         token = RefreshToken.for_user(

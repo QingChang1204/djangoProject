@@ -69,20 +69,20 @@ class PreventMiddleware(MiddlewareMixin):
     def process_request(self, request):
         path = request.path
         if request.method in ['PUT', 'POST']:
-            if path in LOG_IN_URL_PATH:
+            try:
                 if request.user.is_anonymous:
                     user_id = None
                 else:
                     user_id = request.user.id
+            except AttributeError:
+                user_id = None
+
+            if path in LOG_IN_URL_PATH:
                 ip = prevent_client.get_client_ip(request)
                 request_success = self.check_prevent(user_id, ip, "log_in_limit")
                 if not request_success:
                     return custom_response({"detail": "您的访问过于频繁，请稍后再试。"}, 401)
             elif path in COMMENT_URL_PATH:
-                if request.user.is_anonymous:
-                    user_id = None
-                else:
-                    user_id = request.user.id
                 ip = prevent_client.get_client_ip(request)
                 request_success = self.check_prevent(user_id, ip, "comment_limit")
                 if not request_success:
