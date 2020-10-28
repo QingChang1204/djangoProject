@@ -1,17 +1,20 @@
 import uuid
-
 from django.contrib.auth import authenticate
+from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError
+from django.db.models import Prefetch
 from django.utils import timezone
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 import re
 from rest_framework.viewsets import GenericViewSet
 from rest_framework_simplejwt.tokens import RefreshToken
-from blog.errcode import USER_INFO, EMAIL_FORMAT_ERROR, EXISTED_USER_NAME, TOKEN, PARAM_ERROR, SUCCESS, WEB_SOCKET_TOKEN
-from blog.models import User, ReceiveMessage, WebSocketTicket
-from blog.serializers import BlogUserSerializers
-from blog.utils import custom_response, CustomAuth
+from blog.errcode import USER_INFO, EMAIL_FORMAT_ERROR, EXISTED_USER_NAME, TOKEN, PARAM_ERROR, SUCCESS, \
+    WEB_SOCKET_TOKEN, USER_ACTIVITY
+from blog.models import User, ReceiveMessage, WebSocketTicket, Article, Comment, Activity
+from blog.serializers import BlogUserSerializers, ArticleActivity, CommentActivity
+from blog.utils import custom_response, CustomAuth, TenPagination
 
 
 class UserViewSets(GenericViewSet):
@@ -19,6 +22,7 @@ class UserViewSets(GenericViewSet):
     authentication_classes = [CustomAuth]
     permission_classes = [IsAuthenticated]
     serializer_class = BlogUserSerializers
+    pagination_class = TenPagination
     email_format = r'^[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+){0,4}@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+){0,4}$'
 
     def list(self, request):
@@ -100,7 +104,11 @@ class UserViewSets(GenericViewSet):
         :param request:
         :return:
         """
-        blog_user = authenticate(username=request.data['username'], password=request.data['password'])
+        try:
+            blog_user = authenticate(username=request.data['username'], password=request.data['password'])
+        except KeyError:
+            return custom_response(PARAM_ERROR, 200)
+
         blog_user.last_login = timezone.now()
         blog_user.save(update_fields=['last_login', ])
         token = RefreshToken.for_user(
@@ -149,3 +157,97 @@ class UserViewSets(GenericViewSet):
             'ticket': str(ticket.ticket)
         }
         return custom_response(WEB_SOCKET_TOKEN, 200)
+
+    @action(detail=False,
+            methods=['GET', 'POST', 'DELETE'],
+            permission_classes=[IsAuthenticated],
+            authentication_classes=[CustomAuth])
+    def user_activity(self, request):
+        user = request.user
+        if request.method == 'POST':
+            data = request.data
+            # 用户可以收藏 喜欢 最爱 文章评论
+            try:
+                activity = data['activity']
+                object_id = int(data['id'])
+                object_type = data['type']
+            except (KeyError, ValueError, TypeError):
+                return custom_response(PARAM_ERROR, 200)
+            else:
+                if activity not in ['S', 'L', 'F']:
+                    return custom_response(PARAM_ERROR, 200)
+
+                if object_type == 'article':
+                    model = Article
+                elif object_type == 'comment':
+                    model = Comment
+                else:
+                    return custom_response(PARAM_ERROR, 200)
+
+                try:
+                    instance = model.objects.only(
+                        'id'
+                    ).get(
+                        id=object_id
+                    )
+                except ObjectDoesNotExist:
+                    return custom_response(PARAM_ERROR, 200)
+
+                Activity.objects.create(
+                    activity_content=instance,
+                    activity_type=activity,
+                    user=user,
+                    name=object_type
+                )
+
+                return custom_response(SUCCESS, 200)
+        elif request.method == 'GET':
+            page = self.paginator
+            data = request.query_params
+            object_type = data.get('type', 'article')
+            if object_type not in ['article', 'comment']:
+                return custom_response(PARAM_ERROR, 200)
+
+            if object_type == "article":
+                instances = Activity.objects.prefetch_related(
+                    Prefetch('activity_content')
+                ).filter(
+                    user=user,
+                    content_type=ContentType.objects.get_for_model(Article)
+                ).only('id', 'content_type_id', 'object_id').all()
+                page_list = page.paginate_queryset(instances, request, view=self)
+                serializers = ArticleActivity(
+                    instance=page_list,
+                    many=True
+                )
+            elif object_type == "comment":
+                instances = Activity.objects.prefetch_related(
+                    Prefetch('activity_content')
+                ).filter(
+                    user=user,
+                    content_type=ContentType.objects.get_for_model(Comment)
+                ).only('id', 'content_type_id', 'object_id').all()
+                page_list = page.paginate_queryset(instances, request, view=self)
+                serializers = CommentActivity(
+                    instance=page_list,
+                    many=True
+                )
+            else:
+                return custom_response(PARAM_ERROR, 200)
+            USER_ACTIVITY['data'] = page.get_paginated_data(serializers.data)
+
+            return custom_response(USER_ACTIVITY, 200)
+        elif request.method == "DELETE":
+            data = request.data
+            try:
+                activity_id = int(data['id'])
+            except (KeyError, ValueError, TypeError):
+                return custom_response(PARAM_ERROR, 200)
+            Activity.objects.filter(
+                user=user,
+                id=activity_id
+            ).delete()
+
+            return custom_response(SUCCESS, 200)
+        else:
+            return custom_response(PARAM_ERROR, 200)

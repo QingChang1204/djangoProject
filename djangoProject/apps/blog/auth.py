@@ -13,7 +13,7 @@ class AuthenticationFailed(APIException):
 class CustomBackend(ModelBackend):
 
     def authenticate(self, request, username=None, password=None, **kwargs):
-        if username is None or password is None:
+        if username is None or password is None or not username or not password:
             raise AuthenticationFailed(
                 "用户名或者密码不可为空。"
             )

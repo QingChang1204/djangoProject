@@ -3,6 +3,8 @@ import time
 from django.contrib.auth.base_user import AbstractBaseUser
 from django.contrib.auth.models import PermissionsMixin, UserManager
 from django.contrib.auth.validators import UnicodeUsernameValidator
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from django.contrib.contenttypes.models import ContentType
 from django.core.mail import send_mail
 from django.db import models
 from django.db.models import Q
@@ -86,6 +88,40 @@ class User(NewAbstractUser):
         super(User, self).save(**kwargs)
 
 
+class Activity(models.Model):
+    FAVORITE = 'F'
+    LIKE = 'L'
+    SAVE = 'S'
+    ACTIVITY_TYPES = (
+        (FAVORITE, 'Favorite'),
+        (LIKE, 'Like'),
+        (SAVE, 'Save')
+    )
+    activity_type = models.CharField(
+        max_length=1,
+        choices=ACTIVITY_TYPES,
+        null=True
+    )
+    user = models.ForeignKey(
+        User,
+        db_constraint=False,
+        on_delete=models.DO_NOTHING,
+    )
+    name = models.CharField(
+        max_length=20,
+        db_index=True,
+        null=True
+    )
+    content_type = models.ForeignKey(
+        ContentType,
+        db_constraint=False,
+        on_delete=models.DO_NOTHING,
+        null=True
+    )
+    object_id = models.PositiveIntegerField()
+    activity_content = GenericForeignKey()
+
+
 class Category(models.Model):
     category = models.CharField(
         verbose_name="目录",
@@ -137,6 +173,7 @@ class Article(models.Model):
         verbose_name="修改时间",
         auto_now=True
     )
+    activities = GenericRelation(Activity, on_delete=models.DO_NOTHING)
 
     def __str__(self):
         return self.title
@@ -213,6 +250,7 @@ class Comment(models.Model):
         verbose_name="创建时间",
         auto_now_add=True
     )
+    activities = GenericRelation(Activity, on_delete=models.DO_NOTHING)
 
     class Meta:
         ordering = ["-datetime_created", ]

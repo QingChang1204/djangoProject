@@ -2,7 +2,7 @@ from django.db.models import Prefetch, Count
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.viewsets import GenericViewSet
-from blog.errcode import ARTICLE_INFO, PARAM_ERROR, SUCCESS, COMMENT_INFO
+from blog.errcode import ARTICLE_INFO, PARAM_ERROR, SUCCESS, COMMENT_INFO, MUST_LOG_IN
 from blog.models import Article, Comment, Reply, ArticleImages
 from blog.serializers import ArticleSerializers, CategorySerializers, CommentSerializers, ReplySerializers, \
     SimpleArticleSerializer, CommonArticleSerializer
@@ -300,7 +300,7 @@ class ArticleViewSets(GenericViewSet):
 class CommentViewSets(GenericViewSet):
     queryset = Comment.objects.all()
     authentication_classes = [CustomAuth]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated | AllowAny]
     serializer_class = CommentSerializers
     pagination_class = TwentyPagination
 
@@ -343,6 +343,8 @@ class CommentViewSets(GenericViewSet):
         :param request:
         :return:
         """
+        if request.user.is_anonymous:
+            return custom_response(MUST_LOG_IN, 200)
         request.data['user_id'] = request.user.id
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -361,6 +363,8 @@ class CommentViewSets(GenericViewSet):
         :param request:
         :return:
         """
+        if request.user.is_anonymous:
+            return custom_response(MUST_LOG_IN, 200)
         request.data['user_id'] = request.user.id
         serializer = ReplySerializers(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -397,7 +401,7 @@ class CommentViewSets(GenericViewSet):
             authentication_classes=[CustomAuth])
     def delete_reply(self, request):
         """
-        删除评论
+        删除回复
         :param request:
         :return:
         """
