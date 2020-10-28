@@ -173,7 +173,7 @@ class Article(models.Model):
         verbose_name="修改时间",
         auto_now=True
     )
-    activities = GenericRelation(Activity, on_delete=models.DO_NOTHING)
+    activities = GenericRelation(Activity, on_delete=models.DO_NOTHING, related_query_name="article")
 
     def __str__(self):
         return self.title
@@ -244,13 +244,13 @@ class Comment(models.Model):
     )
     content = models.CharField(
         verbose_name="评论内容",
-        max_length=200
+        max_length=100
     )
     datetime_created = models.DateTimeField(
         verbose_name="创建时间",
         auto_now_add=True
     )
-    activities = GenericRelation(Activity, on_delete=models.DO_NOTHING)
+    activities = GenericRelation(Activity, on_delete=models.DO_NOTHING, related_query_name="comment")
 
     class Meta:
         ordering = ["-datetime_created", ]

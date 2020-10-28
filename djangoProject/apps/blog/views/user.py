@@ -3,7 +3,6 @@ from django.contrib.auth import authenticate
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError
-from django.db.models import Prefetch
 from django.utils import timezone
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -13,7 +12,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from blog.errcode import USER_INFO, EMAIL_FORMAT_ERROR, EXISTED_USER_NAME, TOKEN, PARAM_ERROR, SUCCESS, \
     WEB_SOCKET_TOKEN, USER_ACTIVITY
 from blog.models import User, ReceiveMessage, WebSocketTicket, Article, Comment, Activity
-from blog.serializers import BlogUserSerializers, ArticleActivity, CommentActivity
+from blog.serializers import BlogUserSerializers, \
+    ActivityArticleSerializer, ActivityCommentSerializer
 from blog.utils import custom_response, CustomAuth, TenPagination
 
 
@@ -202,39 +202,48 @@ class UserViewSets(GenericViewSet):
 
                 return custom_response(SUCCESS, 200)
         elif request.method == 'GET':
-            page = self.paginator
             data = request.query_params
             object_type = data.get('type', 'article')
+
+            try:
+                page = int(data.get('page', "-1"))
+                if page < 0:
+                    raise ValueError
+            except (ValueError, TypeError):
+                return custom_response(PARAM_ERROR, 200)
+
             if object_type not in ['article', 'comment']:
                 return custom_response(PARAM_ERROR, 200)
 
             if object_type == "article":
-                instances = Activity.objects.prefetch_related(
-                    Prefetch('activity_content')
-                ).filter(
-                    user=user,
-                    content_type=ContentType.objects.get_for_model(Article)
-                ).only('id', 'content_type_id', 'object_id').all()
-                page_list = page.paginate_queryset(instances, request, view=self)
-                serializers = ArticleActivity(
-                    instance=page_list,
-                    many=True
-                )
+                model = Article
+                serializer = ActivityArticleSerializer
+                value = ['id', 'title']
             elif object_type == "comment":
-                instances = Activity.objects.prefetch_related(
-                    Prefetch('activity_content')
-                ).filter(
-                    user=user,
-                    content_type=ContentType.objects.get_for_model(Comment)
-                ).only('id', 'content_type_id', 'object_id').all()
-                page_list = page.paginate_queryset(instances, request, view=self)
-                serializers = CommentActivity(
-                    instance=page_list,
-                    many=True
-                )
+                model = Comment
+                serializer = ActivityCommentSerializer
+                value = ['id', 'content']
             else:
                 return custom_response(PARAM_ERROR, 200)
-            USER_ACTIVITY['data'] = page.get_paginated_data(serializers.data)
+            queryset = Activity.objects.filter(
+                user=user,
+                content_type=ContentType.objects.get_for_model(model),
+            )
+            object_count = queryset.count()
+            object_id_list = list(queryset.values_list('object_id', flat=True)[(page - 1) * 10:page * 10])
+            instance = model.objects.filter(
+                id__in=object_id_list
+            ).only(
+                *value
+            )
+            serializers = serializer(
+                instance=instance,
+                many=True
+            )
+            USER_ACTIVITY['data'] = {
+                "result": serializers.data,
+                "result_count": object_count
+            }
 
             return custom_response(USER_ACTIVITY, 200)
         elif request.method == "DELETE":

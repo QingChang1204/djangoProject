@@ -175,7 +175,7 @@ class CustomAuth(JWTAuthentication):
             raise InvalidToken('Token contained no recognizable user identification')
 
         user = User.objects.filter(**{'id': user_id}).only(
-            'is_active', 'is_staff', 'is_superuser', 'id'
+            'is_active', 'is_staff', 'is_superuser', 'id', 'username'
         ).first()
 
         if user is None or not user.is_active:

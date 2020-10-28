@@ -1,6 +1,6 @@
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
-from blog.models import User, Article, Category, Reply, Comment, Activity
+from blog.models import User, Article, Category, Reply, Comment
 from blog.tasks import set_attached_picture
 
 
@@ -223,51 +223,17 @@ class CommonArticleSerializer(ArticleSerializers):
         ]
 
 
-class ActivityMeta:
-    model = Activity
-    fields = [
-        'id'
-    ]
-
-
-class ActivitySerializers(serializers.ModelSerializer):
-    class Meta(ActivityMeta):
-        pass
-
-
-class ArticleActivity(ActivitySerializers):
-    article_info = serializers.SerializerMethodField()
-
-    @staticmethod
-    def get_article_info(obj):
-        try:
-            return {
-                "id": obj.activity_content.id,
-                "title": obj.activity_content.title
-            }
-        except ObjectDoesNotExist:
-            return None
-
-    class Meta(ActivityMeta):
+class ActivityArticleSerializer(ArticleSerializers):
+    class Meta(ArticleMeta):
         fields = [
-            'id', 'article_info'
+            'id', 'title'
         ]
+        extra_kwargs = {'publish_status': {'write_only': True}, 'user_info': {'write_only': True}}
 
 
-class CommentActivity(ActivitySerializers):
-    comment_info = serializers.SerializerMethodField()
-
-    @staticmethod
-    def get_comment_info(obj):
-        try:
-            return {
-                    'id': obj.activity_content.id,
-                    'content': obj.activity_content.content
-                }
-        except ObjectDoesNotExist:
-            return None
-
-    class Meta(ActivityMeta):
+class ActivityCommentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Comment
         fields = [
-            'id', 'comment_info'
+            'id', 'content'
         ]
