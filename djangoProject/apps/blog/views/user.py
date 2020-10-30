@@ -32,9 +32,12 @@ class UserViewSets(GenericViewSet):
         :return:
         """
         serializer = self.serializer_class(
-            instance=request.user
+            instance=self.queryset.only(
+                'username', 'email', 'display_account', 'icon'
+            ).get(request.user.id)
         )
         USER_INFO['data'] = serializer.data
+
         return custom_response(USER_INFO, 200)
 
     @action(detail=False,
@@ -57,10 +60,13 @@ class UserViewSets(GenericViewSet):
                 )
                 blog_user = blog_user.save()
             else:
+
                 return custom_response(EMAIL_FORMAT_ERROR, 200)
         except IntegrityError:
+
             return custom_response(EXISTED_USER_NAME, 200)
         except KeyError:
+
             return custom_response(PARAM_ERROR, 200)
         else:
             token = RefreshToken.for_user(blog_user)
@@ -68,6 +74,7 @@ class UserViewSets(GenericViewSet):
                 'access_token': "Bearer " + str(token.access_token),
                 'refresh': "Bearer " + str(token)
             }
+
             return custom_response(TOKEN, 200)
 
     @action(detail=False,
@@ -88,10 +95,13 @@ class UserViewSets(GenericViewSet):
                     blog_user.is_valid(raise_exception=True)
                     blog_user.save()
                 else:
+
                     return custom_response(EMAIL_FORMAT_ERROR, 200)
         except IntegrityError:
+
             return custom_response(EXISTED_USER_NAME, 200)
         else:
+
             return custom_response(SUCCESS, 200)
 
     @action(detail=False,
@@ -107,17 +117,19 @@ class UserViewSets(GenericViewSet):
         try:
             blog_user = authenticate(username=request.data['username'], password=request.data['password'])
         except KeyError:
-            return custom_response(PARAM_ERROR, 200)
 
-        blog_user.last_login = timezone.now()
-        blog_user.save(update_fields=['last_login', ])
-        token = RefreshToken.for_user(
-            blog_user
-        )
-        TOKEN['data'] = {
-            'access_token': "Bearer " + str(token.access_token),
-            'refresh': "Bearer " + str(token)
-        }
+            return custom_response(PARAM_ERROR, 200)
+        else:
+            blog_user.last_login = timezone.now()
+            blog_user.save(update_fields=['last_login', ])
+            token = RefreshToken.for_user(
+                blog_user
+            )
+            TOKEN['data'] = {
+                'access_token': "Bearer " + str(token.access_token),
+                'refresh': "Bearer " + str(token)
+            }
+
         return custom_response(TOKEN, 200)
 
     @action(detail=False,
@@ -129,12 +141,15 @@ class UserViewSets(GenericViewSet):
             content = request.data['content']
             user_id = int(request.data['user_id'])
         except (KeyError, ValueError, TypeError):
+
             return custom_response(PARAM_ERROR, 200)
-        ReceiveMessage.objects.create(
-            user_id=user_id,
-            send_user_id=request.user.id,
-            content=content
-        )
+        else:
+            ReceiveMessage.objects.create(
+                user_id=user_id,
+                send_user_id=request.user.id,
+                content=content
+            )
+
         return custom_response(SUCCESS, 200)
 
     @action(detail=False,
@@ -156,6 +171,7 @@ class UserViewSets(GenericViewSet):
         WEB_SOCKET_TOKEN['data'] = {
             'ticket': str(ticket.ticket)
         }
+
         return custom_response(WEB_SOCKET_TOKEN, 200)
 
     @action(detail=False,
@@ -172,9 +188,11 @@ class UserViewSets(GenericViewSet):
                 object_id = int(data['id'])
                 object_type = data['type']
             except (KeyError, ValueError, TypeError):
+
                 return custom_response(PARAM_ERROR, 200)
             else:
                 if activity not in ['S', 'L', 'F']:
+
                     return custom_response(PARAM_ERROR, 200)
 
                 if object_type == 'article':
@@ -182,6 +200,7 @@ class UserViewSets(GenericViewSet):
                 elif object_type == 'comment':
                     model = Comment
                 else:
+
                     return custom_response(PARAM_ERROR, 200)
 
                 try:
@@ -191,14 +210,15 @@ class UserViewSets(GenericViewSet):
                         id=object_id
                     )
                 except ObjectDoesNotExist:
-                    return custom_response(PARAM_ERROR, 200)
 
-                Activity.objects.create(
-                    activity_content=instance,
-                    activity_type=activity,
-                    user=user,
-                    name=object_type
-                )
+                    return custom_response(PARAM_ERROR, 200)
+                else:
+                    Activity.objects.create(
+                        activity_content=instance,
+                        activity_type=activity,
+                        user=user,
+                        name=object_type
+                    )
 
                 return custom_response(SUCCESS, 200)
         elif request.method == 'GET':
@@ -210,40 +230,43 @@ class UserViewSets(GenericViewSet):
                 if page < 0:
                     raise ValueError
             except (ValueError, TypeError):
-                return custom_response(PARAM_ERROR, 200)
 
-            if object_type not in ['article', 'comment']:
                 return custom_response(PARAM_ERROR, 200)
-
-            if object_type == "article":
-                model = Article
-                serializer = ActivityArticleSerializer
-                value = ['id', 'title']
-            elif object_type == "comment":
-                model = Comment
-                serializer = ActivityCommentSerializer
-                value = ['id', 'content']
             else:
-                return custom_response(PARAM_ERROR, 200)
-            queryset = Activity.objects.filter(
-                user=user,
-                content_type=ContentType.objects.get_for_model(model),
-            )
-            object_count = queryset.count()
-            object_id_list = list(queryset.values_list('object_id', flat=True)[(page - 1) * 10:page * 10])
-            instance = model.objects.filter(
-                id__in=object_id_list
-            ).only(
-                *value
-            )
-            serializers = serializer(
-                instance=instance,
-                many=True
-            )
-            USER_ACTIVITY['data'] = {
-                "result": serializers.data,
-                "result_count": object_count
-            }
+                if object_type not in ['article', 'comment']:
+
+                    return custom_response(PARAM_ERROR, 200)
+
+                if object_type == "article":
+                    model = Article
+                    serializer = ActivityArticleSerializer
+                    value = ['id', 'title']
+                elif object_type == "comment":
+                    model = Comment
+                    serializer = ActivityCommentSerializer
+                    value = ['id', 'content']
+                else:
+
+                    return custom_response(PARAM_ERROR, 200)
+                queryset = Activity.objects.filter(
+                    user=user,
+                    content_type=ContentType.objects.get_for_model(model),
+                )
+                object_count = queryset.count()
+                object_id_list = list(queryset.values_list('object_id', flat=True)[(page - 1) * 10:page * 10])
+                instance = model.objects.filter(
+                    id__in=object_id_list
+                ).only(
+                    *value
+                )
+                serializers = serializer(
+                    instance=instance,
+                    many=True
+                )
+                USER_ACTIVITY['data'] = {
+                    "result": serializers.data,
+                    "result_count": object_count
+                }
 
             return custom_response(USER_ACTIVITY, 200)
         elif request.method == "DELETE":
@@ -251,12 +274,15 @@ class UserViewSets(GenericViewSet):
             try:
                 activity_id = int(data['id'])
             except (KeyError, ValueError, TypeError):
+
                 return custom_response(PARAM_ERROR, 200)
-            Activity.objects.filter(
-                user=user,
-                id=activity_id
-            ).delete()
+            else:
+                Activity.objects.filter(
+                    user=user,
+                    id=activity_id
+                ).delete()
 
             return custom_response(SUCCESS, 200)
         else:
+
             return custom_response(PARAM_ERROR, 200)

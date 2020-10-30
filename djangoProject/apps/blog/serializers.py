@@ -1,6 +1,7 @@
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Prefetch, Count
 from rest_framework import serializers
-from blog.models import User, Article, Category, Reply, Comment
+from blog.models import User, Article, Category, Reply, Comment, ArticleImages
 from blog.tasks import set_attached_picture
 
 
@@ -85,8 +86,6 @@ class CategorySerializersMixin:
 
 class ReplySerializers(serializers.ModelSerializer, UserSerializerMixin):
     comment_id = serializers.IntegerField(write_only=True)
-    user_id = serializers.IntegerField()
-    to_user_id = serializers.IntegerField()
     datetime_created = serializers.DateTimeField(format='%Y年%m月%d日 %H时:%M分:%S秒', read_only=True)
     user_info = serializers.SerializerMethodField(read_only=True)
     to_user_info = serializers.SerializerMethodField(read_only=True)
@@ -115,11 +114,24 @@ class ReplySerializers(serializers.ModelSerializer, UserSerializerMixin):
 
 class CommentSerializers(serializers.ModelSerializer, UserSerializerMixin):
     user_info = serializers.SerializerMethodField(read_only=True)
-    user_id = serializers.IntegerField()
     article_id = serializers.IntegerField(write_only=True)
     reply = serializers.SerializerMethodField(read_only=True)
     reply_count = serializers.SerializerMethodField(read_only=True)
     datetime_created = serializers.DateTimeField(format='%Y年%m月%d日 %H时:%M分:%S秒', read_only=True)
+
+    @classmethod
+    def get_instance(cls):
+        return cls.Meta.model.objects.select_related('user').prefetch_related(
+            Prefetch('replies', queryset=Reply.objects.only(
+                'to_user__icon', 'to_user__username', 'user__username', 'comment_id'
+            ))
+        ).annotate(
+            reply_count=Count(
+                'reply'
+            )
+        ).only(
+            'user__icon', 'user__username', 'datetime_created', 'article_id', 'user_id', 'content'
+        )
 
     @staticmethod
     def get_reply_count(obj):
@@ -179,8 +191,6 @@ class ArticleSerializers(serializers.ModelSerializer, AttachedSerializersMixin, 
     def create(self, validated_data):
         instance = self.Meta.model(
             **validated_data,
-            user=self.context['user'],
-            category=self.context['category']
         )
         instance.save()
         if self.initial_data.get('images', None) is not None:
@@ -193,10 +203,6 @@ class ArticleSerializers(serializers.ModelSerializer, AttachedSerializersMixin, 
         if self.initial_data.get('images', None) is not None:
             set_attached_picture.delay(self.initial_data['images'], "article", instance.id)
 
-        if self.context.get('category', False):
-            instance.category = self.context.get('category')
-            update_fields.append('category')
-
         for k, v in validated_data.items():
             update_fields.append(k)
             instance.__setattr__(k, v)
@@ -205,13 +211,46 @@ class ArticleSerializers(serializers.ModelSerializer, AttachedSerializersMixin, 
 
 
 class SimpleArticleSerializer(ArticleSerializers):
+
+    @classmethod
+    def get_instance(cls):
+        return cls.Meta.model.objects.select_related(
+            'category'
+        ).prefetch_related(
+                Prefetch('images', queryset=ArticleImages.objects.only(
+                    'id', 'image', 'article_id'
+                ))
+            ).only(
+            'id', 'title', 'datetime_created', 'content', 'tag',
+            'datetime_update', 'category__category'
+        )
+
     class Meta(ArticleMeta):
         fields = [
             'id', 'title', 'category_name', 'attached_pictures', 'datetime_created',
-            'category_name', 'publish_status', 'content',
-            'tag', 'datetime_update', 'user_id', 'user_info'
+            'category_name', 'content', 'tag', 'datetime_update'
         ]
-        extra_kwargs = {'publish_status': {'write_only': True}, 'user_info': {'write_only': True}}
+
+
+class SimpleArticleUserSerializer(ArticleSerializers):
+    @classmethod
+    def get_instance(cls):
+        return cls.Meta.model.objects.select_related(
+            'user', 'category'
+        ).prefetch_related(
+            Prefetch('images', queryset=ArticleImages.objects.only(
+                'id', 'image', 'article_id'
+            ))
+        ).only(
+            'id', 'title', 'user__icon', 'user__username',
+            'category__category', 'datetime_created'
+        )
+
+    class Meta(ArticleMeta):
+        fields = [
+            'id', 'user_info', 'title', 'category_name', 'attached_pictures',
+            'datetime_created'
+        ]
 
 
 class CommonArticleSerializer(ArticleSerializers):
