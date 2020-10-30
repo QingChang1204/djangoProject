@@ -1,11 +1,10 @@
-from django.db.models import Prefetch, Count
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.viewsets import GenericViewSet
 from blog.errcode import ARTICLE_INFO, PARAM_ERROR, SUCCESS, COMMENT_INFO, MUST_LOG_IN
-from blog.models import Article, Comment, Reply, ArticleImages
+from blog.models import Article, Comment, Reply
 from blog.serializers import ArticleSerializers, CategorySerializers, CommentSerializers, ReplySerializers, \
-    SimpleArticleSerializer, CommonArticleSerializer
+    SimpleArticleSerializer, CommonArticleSerializer, SimpleArticleUserSerializer
 from blog.utils import es_search, custom_response, TenPagination, TwentyPagination, CustomAuth, query_combination, \
     QueryException
 
@@ -26,10 +25,11 @@ class ArticleViewSets(GenericViewSet):
             instance_id = int(request.data.pop('id', None))
         except (ValueError, TypeError, AttributeError):
             raise Article.DoesNotExist
-        instance = self.queryset.only('id').get(
-            id=instance_id,
-            user=request.user
-        )
+        else:
+            instance = self.queryset.only('id').get(
+                id=instance_id,
+                user=request.user
+            )
         return instance
 
     @staticmethod
@@ -45,6 +45,7 @@ class ArticleViewSets(GenericViewSet):
             category.is_valid(raise_exception=True)
             category = category.save()
             context['category'] = category
+
         return context
 
     def list(self, request):
@@ -54,29 +55,14 @@ class ArticleViewSets(GenericViewSet):
         :return:
         """
         page = self.paginator
-        instances = self.queryset.select_related('category', 'user').prefetch_related(
-            Prefetch('images', queryset=ArticleImages.objects.only(
-                'id', 'image', 'article_id'
-            ))
-        ).filter(
-            user=request.user
-        ).only(
-            'id', 'title', 'user__username', 'user__icon', 'category__category', 'datetime_created',
-            'datetime_update', 'publish_status', 'title', 'content', 'publish_status', 'tag'
-        ).order_by('-datetime_created').all()
+        instances = SimpleArticleSerializer.get_instance().order_by('-datetime_created').all()
         page_list = page.paginate_queryset(instances, request, view=self)
-        serializers = self.serializer_class(
+        serializers = SimpleArticleSerializer(
             instance=page_list,
             many=True
         )
-        serializers.child.Meta.fields = ['id', 'title', 'attached_pictures',
-                                         'category_name', 'publish_status', 'content',
-                                         'tag', 'datetime_created', 'datetime_update']
-
-        declared_fields_list = ['attached_pictures', 'category_name', 'datetime_update',
-                                'datetime_created']
-        serializers.child._declared_fields = {k: serializers.child._declared_fields[k] for k in declared_fields_list}
         ARTICLE_INFO['data'] = page.get_paginated_data(serializers.data)
+
         return custom_response(ARTICLE_INFO, 200)
 
     def create(self, request):
@@ -85,15 +71,12 @@ class ArticleViewSets(GenericViewSet):
         :param request:
         :return:
         """
-        context = {"user": request.user}
-        context = self.get_category(request.data, context)
-
+        context = self.get_category(request.data, {"user": request.user})
         serializer = CommonArticleSerializer(
             data=request.data,
-            context=context,
         )
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        serializer.save(**context)
 
         return custom_response(SUCCESS, 200)
 
@@ -111,19 +94,17 @@ class ArticleViewSets(GenericViewSet):
             article = self.get_article(request)
         except Article.DoesNotExist:
             return custom_response(PARAM_ERROR, 200)
-        context = {}
-        context = self.get_category(request.data, context)
-
-        serializer = CommonArticleSerializer(
-            data=request.data,
-            instance=article,
-            partial=True,
-            context=context,
-        )
-        serializer.is_valid(
-            raise_exception=True
-        )
-        serializer.save()
+        else:
+            context = self.get_category(request.data, {})
+            serializer = CommonArticleSerializer(
+                data=request.data,
+                instance=article,
+                partial=True,
+            )
+            serializer.is_valid(
+                raise_exception=True
+            )
+            serializer.save(**context)
 
         return custom_response(SUCCESS, 200)
 
@@ -141,7 +122,8 @@ class ArticleViewSets(GenericViewSet):
             article = self.get_article(request)
         except Article.DoesNotExist:
             return custom_response(PARAM_ERROR, 200)
-        article.delete()
+        else:
+            article.delete()
 
         return custom_response(SUCCESS, 200)
 
@@ -160,35 +142,25 @@ class ArticleViewSets(GenericViewSet):
             page = int(request.data['page'])
         except (KeyError, ValueError):
             return custom_response(PARAM_ERROR, 200)
-        res_dict, res_count = es_search.query_search(search_keywords, page, 10)
-        article_id_list = []
-        for res in res_dict['hits']['hits']:
-            article_id_list.append(res['_id'])
-        articles = self.queryset.select_related(
-            'user', 'category'
-        ).prefetch_related(
-            Prefetch('images', queryset=ArticleImages.objects.only(
-                'id', 'image', 'article_id'
-            ))
-        ).only(
-            'id', 'title', 'datetime_update', 'user__icon', 'user__username',
-            'category__category'
-        ).filter(
-            id__in=article_id_list
-        ).all()
-        serializers = self.serializer_class(
-            instance=articles,
-            many=True,
-        )
-        serializers.child.Meta.fields = ['id', 'user_info', 'title', 'category_name', 'attached_pictures',
-                                         'datetime_created']
-        declared_fields_list = ['attached_pictures', 'category_name', 'user_info', 'datetime_created']
-        serializers.child._declared_fields = {k: serializers.child._declared_fields[k] for k in declared_fields_list}
+        else:
+            res_dict, res_count = es_search.query_search(search_keywords, page, 10)
+            article_id_list = []
+            for res in res_dict['hits']['hits']:
+                article_id_list.append(res['_id'])
 
-        ARTICLE_INFO['data'] = {
-            "results": serializers.data,
-            "count": res_count
-        }
+            articles = SimpleArticleUserSerializer.get_instance().filter(
+                id__in=article_id_list
+            ).all()
+            serializers = SimpleArticleUserSerializer(
+                instance=articles,
+                many=True,
+            )
+
+            ARTICLE_INFO['data'] = {
+                "results": serializers.data,
+                "count": res_count
+            }
+
         return custom_response(ARTICLE_INFO, 200)
 
     @action(detail=False,
@@ -202,28 +174,18 @@ class ArticleViewSets(GenericViewSet):
         :return:
         """
         page = self.paginator
-        instances = self.queryset.select_related('user', 'category').prefetch_related(
-            Prefetch('images', queryset=ArticleImages.objects.only(
-                'id', 'image', 'article_id'
-            ))
-        ).filter(
+        instances = SimpleArticleUserSerializer.get_instance().filter(
             publish_status=True
-        ).only(
-            'user__username', 'category__category', 'user__icon', 'id', 'title', 'datetime_created'
         ).order_by(
             '-datetime_created'
         ).all()
         page_list = page.paginate_queryset(instances, request, view=self)
-        serializers = self.serializer_class(
+        serializers = SimpleArticleUserSerializer(
             instance=page_list,
             many=True
         )
-        serializers.child.Meta.fields = ['id', 'user_info', 'title', 'category_name', 'attached_pictures',
-                                         'datetime_created']
-        declared_fields_list = ['attached_pictures', 'category_name', 'user_info', 'datetime_created']
-        serializers.child._declared_fields = {k: serializers.child._declared_fields[k] for k in declared_fields_list}
-
         ARTICLE_INFO['data'] = page.get_paginated_data(serializers.data)
+
         return custom_response(ARTICLE_INFO, 200)
 
     @action(detail=False,
@@ -238,28 +200,14 @@ class ArticleViewSets(GenericViewSet):
         """
         try:
             article_id = int(request.query_params['id'])
-        except (KeyError, ValueError, AttributeError):
+            serializer = SimpleArticleSerializer(
+                instance=SimpleArticleSerializer.get_instance().get(
+                    id=article_id, publish_status=False))
+        except (KeyError, ValueError, AttributeError, Article.DoesNotExist):
             return custom_response(PARAM_ERROR, 200)
-        try:
-            instance = self.queryset.select_related(
-                'category', 'user'
-            ).prefetch_related(
-                Prefetch('images', queryset=ArticleImages.objects.only(
-                    'id', 'image', 'article_id'
-                ))
-            ).only(
-                'id', 'title', 'datetime_created', 'user_id',
-                'tag', 'content', 'datetime_update', 'publish_status',
-                'user__username', 'user__icon', 'category__category'
-            ).get(
-                id=article_id,
-                publish_status=True
-            )
-        except Article.DoesNotExist:
-            return custom_response(PARAM_ERROR, 200)
+        else:
+            ARTICLE_INFO['data'] = serializer.data
 
-        serializer = SimpleArticleSerializer(instance=instance)
-        ARTICLE_INFO['data'] = serializer.data
         return custom_response(ARTICLE_INFO, 200)
 
     @action(detail=False,
@@ -270,30 +218,21 @@ class ArticleViewSets(GenericViewSet):
         page = self.paginator
         try:
             filter_objects = query_combination(request.data)
-            instances = self.queryset.select_related('user', 'category').prefetch_related(
-                Prefetch('images', queryset=ArticleImages.objects.only(
-                    'id', 'image', 'article_id'
-                ))
-            ).filter(
+            instances = SimpleArticleUserSerializer.get_instance().filter(
                 filter_objects
-            ).only(
-                'id', 'title', 'user__username', 'user__icon', 'category__category', 'datetime_created',
-                'datetime_update', 'publish_status', 'title', 'content', 'publish_status', 'tag'
             ).order_by(
                 '-datetime_created'
             ).all()
         except (QueryException, ValueError):
             return custom_response(PARAM_ERROR, 200)
-        page_list = page.paginate_queryset(instances, request, view=self)
-        serializers = self.serializer_class(
-            instance=page_list,
-            many=True
-        )
-        serializers.child.Meta.fields = ['id', 'user_info', 'title', 'category_name', 'attached_pictures',
-                                         'datetime_created']
-        declared_fields_list = ['attached_pictures', 'category_name', 'user_info', 'datetime_created']
-        serializers.child._declared_fields = {k: serializers.child._declared_fields[k] for k in declared_fields_list}
-        ARTICLE_INFO['data'] = page.get_paginated_data(serializers.data)
+        else:
+            page_list = page.paginate_queryset(instances, request, view=self)
+            serializers = SimpleArticleUserSerializer(
+                instance=page_list,
+                many=True
+            )
+            ARTICLE_INFO['data'] = page.get_paginated_data(serializers.data)
+
         return custom_response(ARTICLE_INFO, 200)
 
 
@@ -314,27 +253,19 @@ class CommentViewSets(GenericViewSet):
             article_id = request.query_params['id']
         except (KeyError, ValueError):
             return custom_response(PARAM_ERROR, 200)
-        page = self.paginator
-        instances = self.queryset.select_related('user').prefetch_related(
-            Prefetch('replies', queryset=Reply.objects.only(
-                'to_user__icon', 'to_user__username', 'user__username', 'comment_id'
-            ))
-        ).annotate(
-            reply_count=Count(
-                'reply'
+        else:
+            page = self.paginator
+            instances = self.serializer_class.get_instance().filter(
+                article_id=article_id
+            ).all()
+            page_list = page.paginate_queryset(instances, request, view=self)
+            serializers = self.serializer_class(
+                instance=page_list,
+                many=True
             )
-        ).only(
-            'user__icon', 'user__username', 'datetime_created', 'article_id', 'user_id', 'content'
-        ).filter(
-            article_id=article_id
-        ).all()
-        page_list = page.paginate_queryset(instances, request, view=self)
-        serializers = self.serializer_class(
-            instance=page_list,
-            many=True
-        )
 
-        COMMENT_INFO['data'] = page.get_paginated_data(serializers.data)
+            COMMENT_INFO['data'] = page.get_paginated_data(serializers.data)
+
         return custom_response(COMMENT_INFO, 200)
 
     def create(self, request):
@@ -345,13 +276,12 @@ class CommentViewSets(GenericViewSet):
         """
         if request.user.is_anonymous:
             return custom_response(MUST_LOG_IN, 200)
-        request.data['user_id'] = request.user.id
-        serializer = self.serializer_class(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
+        else:
+            serializer = self.serializer_class(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save(user=request.user)
 
-        COMMENT_INFO['data'] = serializer.data
-        return custom_response(COMMENT_INFO, 200)
+        return custom_response(SUCCESS, 200)
 
     @action(detail=False,
             methods=['POST'],
@@ -365,13 +295,12 @@ class CommentViewSets(GenericViewSet):
         """
         if request.user.is_anonymous:
             return custom_response(MUST_LOG_IN, 200)
-        request.data['user_id'] = request.user.id
-        serializer = ReplySerializers(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
+        else:
+            serializer = ReplySerializers(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save(user=request.user)
 
-        COMMENT_INFO['data'] = serializer.data
-        return custom_response(COMMENT_INFO, 200)
+        return custom_response(SUCCESS, 200)
 
     @action(detail=False,
             methods=['POST'],
@@ -387,11 +316,11 @@ class CommentViewSets(GenericViewSet):
             comment_id = int(request.data['id'])
         except (KeyError, ValueError, AttributeError):
             return custom_response(PARAM_ERROR, 200)
-
-        self.queryset.filter(
-            id=comment_id,
-            user=request.user
-        ).delete()
+        else:
+            self.queryset.filter(
+                id=comment_id,
+                user=request.user
+            ).delete()
 
         return custom_response(SUCCESS, 200)
 
@@ -409,10 +338,10 @@ class CommentViewSets(GenericViewSet):
             reply_id = int(request.data['id'])
         except (KeyError, ValueError, AttributeError):
             return custom_response(PARAM_ERROR, 200)
-
-        Reply.objects.filter(
-            id=reply_id,
-            user=request.user
-        ).delete()
+        else:
+            Reply.objects.filter(
+                id=reply_id,
+                user=request.user
+            ).delete()
 
         return custom_response(SUCCESS, 200)
