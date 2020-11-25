@@ -41,6 +41,12 @@ UNKNOWN_ERROR = {
     "detail": " unknown error"
 }
 
+NOT_FOUND = {
+    "err_code": -7,
+    "data": {},
+    "detail": " not found"
+}
+
 # 用户相关
 LOG_SUCCESS = {
     "err_code": 1001,

@@ -170,7 +170,7 @@ class ArticleMeta:
     model = Article
     fields = [
         'user_info', 'id', 'title', 'category_name', 'attached_pictures', 'datetime_created',
-        'category_name', 'publish_status', 'content',
+        'publish_status', 'content',
         'tag', 'datetime_update', 'user_id',
     ]
     read_only_fields = ['datetime_created', 'datetime_update', 'id', 'user_id']
@@ -227,7 +227,7 @@ class SimpleArticleSerializer(ArticleSerializers):
 
     class Meta(ArticleMeta):
         fields = [
-            'id', 'title', 'category_name', 'attached_pictures', 'datetime_created',
+            'id', 'title', 'attached_pictures', 'datetime_created',
             'category_name', 'content', 'tag', 'datetime_update'
         ]
 
@@ -257,7 +257,7 @@ class CommonArticleSerializer(ArticleSerializers):
     class Meta(ArticleMeta):
         fields = [
             'user_info', 'id', 'title', 'category_name', 'attached_pictures', 'datetime_created',
-            'category_name', 'publish_status', 'content',
+            'publish_status', 'content',
             'tag', 'datetime_update', 'user_id',
         ]
 

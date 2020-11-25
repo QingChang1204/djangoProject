@@ -5,6 +5,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError
 from django.utils import timezone
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 import re
 from rest_framework.viewsets import GenericViewSet
@@ -62,7 +63,7 @@ class UserViewSets(GenericViewSet):
             else:
 
                 return custom_response(EMAIL_FORMAT_ERROR, 200)
-        except IntegrityError:
+        except (IntegrityError, ValidationError):
 
             return custom_response(EXISTED_USER_NAME, 200)
         except KeyError:

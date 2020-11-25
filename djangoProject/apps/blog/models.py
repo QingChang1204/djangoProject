@@ -163,7 +163,8 @@ class Article(models.Model):
     )
     publish_status = models.BooleanField(
         verbose_name="发布状态",
-        default=False
+        default=False,
+        db_index=True
     )
     datetime_created = models.DateTimeField(
         verbose_name="创建时间",
