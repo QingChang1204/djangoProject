@@ -95,7 +95,7 @@ class ArticleViewSets(GenericViewSet):
         except Article.DoesNotExist:
             return custom_response(PARAM_ERROR, 200)
         else:
-            context = self.get_category(request.data, {})
+            context = self.get_category(request.data, {"user": request.user})
             serializer = CommonArticleSerializer(
                 data=request.data,
                 instance=article,

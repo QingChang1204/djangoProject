@@ -1,7 +1,7 @@
 import datetime
 import time
 from django.contrib.auth.base_user import AbstractBaseUser
-from django.contrib.auth.models import PermissionsMixin, UserManager
+from django.contrib.auth.models import UserManager
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
@@ -14,7 +14,7 @@ import hashids
 # Create your models here.
 
 
-class NewAbstractUser(AbstractBaseUser, PermissionsMixin):
+class AbstractUser(AbstractBaseUser):
     username_validator = UnicodeUsernameValidator()
 
     username = models.CharField(
@@ -58,7 +58,7 @@ class NewAbstractUser(AbstractBaseUser, PermissionsMixin):
         send_mail(subject, message, from_email, [self.email], **kwargs)
 
 
-class User(NewAbstractUser):
+class User(AbstractUser):
     display_account = models.CharField(
         max_length=20,
         null=True
@@ -133,6 +133,10 @@ class Category(models.Model):
     )
 
 
+class Tag(models.Model):
+    content = models.CharField(max_length=50, null=False, blank=False)
+
+
 class Article(models.Model):
     user = models.ForeignKey(
         User,
@@ -156,10 +160,9 @@ class Article(models.Model):
         verbose_name="文章标题",
         max_length=150
     )
-    tag = models.CharField(
-        verbose_name="标签",
-        max_length=30,
-        null=True
+    tag = models.ManyToManyField(
+        Tag,
+        through="TagShip"
     )
     publish_status = models.BooleanField(
         verbose_name="发布状态",
@@ -174,10 +177,30 @@ class Article(models.Model):
         verbose_name="修改时间",
         auto_now=True
     )
-    activities = GenericRelation(Activity, on_delete=models.DO_NOTHING, related_query_name="article")
+    activities = GenericRelation(Activity, related_query_name="article")
 
     def __str__(self):
         return self.title
+
+
+class TagShip(models.Model):
+    article = models.ForeignKey(
+        Article,
+        db_constraint=False,
+        on_delete=models.CASCADE
+    )
+    tag = models.ForeignKey(
+        Tag,
+        db_constraint=False,
+        on_delete=models.CASCADE
+    )
+    datetime_created = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    class Meta:
+        db_table = 'blog_tag_ship'
+        unique_together = ['article', 'tag']
 
 
 class ImageManager(models.Manager):
@@ -254,7 +277,7 @@ class Comment(models.Model):
         verbose_name="创建时间",
         auto_now_add=True
     )
-    activities = GenericRelation(Activity, on_delete=models.DO_NOTHING, related_query_name="comment")
+    activities = GenericRelation(Activity, related_query_name="comment")
 
     class Meta:
         ordering = ["-datetime_created", ]
@@ -324,6 +347,9 @@ class VerifyCode(models.Model):
     def code_invalid(self, code):
         return self.code != code
 
+    class Meta:
+        db_table = 'blog_verify_code'
+
 
 class ReceiveMessage(models.Model):
     user = models.ForeignKey(
@@ -348,6 +374,9 @@ class ReceiveMessage(models.Model):
         auto_now_add=True
     )
 
+    class Meta:
+        db_table = "blog_receive_message"
+
 
 class WebSocketTicket(models.Model):
     user = models.ForeignKey(
@@ -358,3 +387,6 @@ class WebSocketTicket(models.Model):
         related_query_name="web_ticket"
     )
     ticket = models.CharField(max_length=36, null=True)
+
+    class Meta:
+        db_table = "blog_websocket_ticket"
