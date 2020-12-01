@@ -1,6 +1,7 @@
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Prefetch, Count
 from rest_framework import serializers
+from rest_framework.utils import model_meta
 from blog.models import User, Article, Category, Reply, Comment, ArticleImages
 from blog.tasks import set_attached_picture
 
@@ -199,29 +200,48 @@ class ArticleSerializers(serializers.ModelSerializer, AttachedSerializersMixin, 
     datetime_update = serializers.DateTimeField(format='%Y年%m月%d日 %H时:%M分:%S秒', read_only=True)
     user_info = serializers.SerializerMethodField(read_only=True)
     datetime_created = serializers.DateTimeField(format='%Y年%m月%d日 %H时:%M分:%S秒', read_only=True)
+    tag = serializers.ListField(write_only=True)
 
     class Meta(ArticleMeta):
         pass
 
     def create(self, validated_data):
+        info = model_meta.get_field_info(self.Meta.model)
+        many_to_many = {}
+        for field_name, relation_info in info.relations.items():
+            if relation_info.to_many and (field_name in validated_data):
+                many_to_many[field_name] = validated_data.pop(field_name)
         instance = self.Meta.model(
             **validated_data,
         )
         instance.save()
         if self.initial_data.get('images', None) is not None:
             set_attached_picture.delay(self.initial_data['images'], "article", instance.id)
+        if many_to_many:
+            for field_name, value in many_to_many.items():
+                field = getattr(instance, field_name)
+                field.set(value)
 
         return instance
 
     def update(self, instance, validated_data):
+        info = model_meta.get_field_info(instance)
         update_fields = []
+        m2m_fields = []
+        for attr, value in validated_data.items():
+            if attr in info.relations and info.relations[attr].to_many:
+                m2m_fields.append((attr, value))
+            else:
+                update_fields.append(attr)
+                setattr(instance, attr, value)
+
         if self.initial_data.get('images', None) is not None:
             set_attached_picture.delay(self.initial_data['images'], "article", instance.id)
 
-        for k, v in validated_data.items():
-            update_fields.append(k)
-            instance.__setattr__(k, v)
         instance.save(update_fields=update_fields)
+        for attr, value in m2m_fields:
+            field = getattr(instance, attr)
+            field.set(value)
         return instance
 
 
