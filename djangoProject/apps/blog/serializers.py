@@ -2,7 +2,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Prefetch, Count
 from rest_framework import serializers
 from rest_framework.utils import model_meta
-from blog.models import User, Article, Category, Reply, Comment, ArticleImages
+from blog.models import User, Article, Category, Reply, Comment, ArticleImages, Tag
 from blog.tasks import set_attached_picture
 
 
@@ -206,6 +206,11 @@ class ArticleSerializers(serializers.ModelSerializer, AttachedSerializersMixin, 
         pass
 
     def create(self, validated_data):
+        try:
+            validated_data['tag'] = Tag.objects.filter(pk__in=validated_data.get('tag', [])).all()
+        except ValueError:
+            validated_data.pop('tag')
+
         info = model_meta.get_field_info(self.Meta.model)
         many_to_many = {}
         for field_name, relation_info in info.relations.items():
@@ -225,6 +230,11 @@ class ArticleSerializers(serializers.ModelSerializer, AttachedSerializersMixin, 
         return instance
 
     def update(self, instance, validated_data):
+        try:
+            validated_data['tag'] = Tag.objects.filter(pk__in=validated_data.get('tag', [])).all()
+        except ValueError:
+            validated_data.pop('tag')
+
         info = model_meta.get_field_info(instance)
         update_fields = []
         m2m_fields = []
