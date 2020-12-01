@@ -177,8 +177,23 @@ class ArticleMeta:
     extra_kwargs = {'publish_status': {'write_only': True}}
 
 
+class TagMixin:
+
+    @staticmethod
+    def get_tags(obj):
+        info_list = []
+        try:
+            for i in obj.tag.all():
+                info_list.append(i.content)
+        except ObjectDoesNotExist:
+            pass
+        finally:
+            return info_list
+
+
 class ArticleSerializers(serializers.ModelSerializer, AttachedSerializersMixin, UserSerializerMixin,
-                         CategorySerializersMixin):
+                         CategorySerializersMixin, TagMixin):
+    tags = serializers.SerializerMethodField(read_only=True)
     attached_pictures = serializers.SerializerMethodField()
     category_name = serializers.SerializerMethodField(read_only=True)
     datetime_update = serializers.DateTimeField(format='%Y年%m月%d日 %H时:%M分:%S秒', read_only=True)
@@ -210,7 +225,8 @@ class ArticleSerializers(serializers.ModelSerializer, AttachedSerializersMixin, 
         return instance
 
 
-class SimpleArticleSerializer(ArticleSerializers):
+class SimpleArticleSerializer(ArticleSerializers, TagMixin):
+    tags = serializers.SerializerMethodField(read_only=True)
 
     @classmethod
     def get_instance(cls):
@@ -219,7 +235,7 @@ class SimpleArticleSerializer(ArticleSerializers):
         ).prefetch_related(
                 Prefetch('images', queryset=ArticleImages.objects.only(
                     'id', 'image', 'article_id'
-                ))
+                )), Prefetch('tag')
             ).only(
             'id', 'title', 'datetime_created', 'content', 'tag',
             'datetime_update', 'category__category'
@@ -228,28 +244,32 @@ class SimpleArticleSerializer(ArticleSerializers):
     class Meta(ArticleMeta):
         fields = [
             'id', 'title', 'attached_pictures', 'datetime_created',
-            'category_name', 'content', 'tag', 'datetime_update'
+            'category_name', 'content', 'tags', 'datetime_update'
         ]
 
 
-class SimpleArticleUserSerializer(ArticleSerializers):
+class SimpleArticleUserSerializer(ArticleSerializers, TagMixin):
+    tags = serializers.SerializerMethodField(read_only=True)
+
     @classmethod
     def get_instance(cls):
         return cls.Meta.model.objects.select_related(
-            'user', 'category'
+            'user', 'category',
         ).prefetch_related(
             Prefetch('images', queryset=ArticleImages.objects.only(
                 'id', 'image', 'article_id'
-            ))
+            )), Prefetch(
+                'tag'
+            )
         ).only(
             'id', 'title', 'user__icon', 'user__username',
-            'category__category', 'datetime_created'
+            'category__category', 'datetime_created', 'tag'
         )
 
     class Meta(ArticleMeta):
         fields = [
             'id', 'user_info', 'title', 'category_name', 'attached_pictures',
-            'datetime_created'
+            'datetime_created', 'tags'
         ]
 
 

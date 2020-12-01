@@ -22,7 +22,7 @@ class CustomBackend(ModelBackend):
             Q(username=username) |
             Q(phone=username)
         ).only(
-            'is_active', 'is_staff', 'id', 'is_superuser', 'username', 'password'
+            'is_active', 'is_staff', 'id', 'username', 'password'
         ).first()
         if user is None:
             raise AuthenticationFailed(

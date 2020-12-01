@@ -12,7 +12,7 @@ def post_search_article(**kwargs):
     created = kwargs['created']
     if created:
         search_article.delay(
-            instance.id, instance.content, instance.title, instance.tag, instance.publish_status, instance.user.username
+            instance.id, instance.content, instance.title, None, instance.publish_status, instance.user.username
         )
 
 
@@ -20,10 +20,10 @@ def post_search_article(**kwargs):
 def put_search_article(**kwargs):
     instance = kwargs['instance']
     update_fields = kwargs['update_fields']
-    check = ['content', 'title', 'tag']
+    check = ['content', 'title']
     if instance.id is not None and update_fields is not None and any([info in update_fields for info in check]):
         search_article.delay(
-            instance.id, instance.content, instance.title, instance.tag, instance.publish_status, instance.user.username
+            instance.id, instance.content, instance.title, None, instance.publish_status, instance.user.username
         )
 
 
