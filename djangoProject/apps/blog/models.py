@@ -227,6 +227,9 @@ class ArticleImages(AttachedPicture):
         related_name="images"
     )
 
+    class Meta:
+        db_table = "blog_article_images"
+
 
 class Comment(models.Model):
     article = models.ForeignKey(

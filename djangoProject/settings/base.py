@@ -17,15 +17,15 @@ from sys import path
 from kombu import Queue
 
 
-def here(*x):
-    return os.path.join(os.path.abspath(os.path.dirname(__file__)), *x)
+def here(*args):
+    return os.path.join(os.path.abspath(os.path.dirname(__file__)), *args)
 
 
 PROJECT_ROOT = here("..")
 
 
-def root(*x):
-    return os.path.join(os.path.abspath(PROJECT_ROOT), *x)
+def root(*args):
+    return os.path.join(os.path.abspath(PROJECT_ROOT), *args)
 
 
 path.append(root('apps'))
