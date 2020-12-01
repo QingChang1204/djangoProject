@@ -7,7 +7,6 @@ from collections import OrderedDict
 
 import requests
 from django.db.models import Q
-from django.shortcuts import render
 from elasticsearch_dsl import Search, Document, Text, Boolean, Date, Keyword, UpdateByQuery
 from elasticsearch_dsl.connections import connections
 from django.conf import settings
@@ -21,7 +20,7 @@ from aliyunsdkcore.client import AcsClient
 from rest_framework.views import exception_handler
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import InvalidToken
-from blog.errcode import AUTH_FAIL, NO_PERMISSION, NO_METHOD, UNKNOWN_ERROR
+from blog.errcode import AUTH_FAIL, NO_PERMISSION, NO_METHOD, UNKNOWN_ERROR, NOT_FOUND
 from blog.models import VerifyCode, User
 from blog.constants import ARTICLE_INDEX
 
@@ -139,21 +138,23 @@ def custom_exception_handler(exception, context):
     if not settings.DEBUG:
         if response is None or response.data['status_code'] == 403:
             return custom_response(
-                NO_PERMISSION, 403
+                NO_PERMISSION, 200
             )
         elif response.data['status_code'] == 401:
             AUTH_FAIL['data'] = {
                 'info': response.data.get('detail')
             }
             return custom_response(
-                AUTH_FAIL, 401
+                AUTH_FAIL, 200
             )
         elif response.data['status_code'] == 405:
             return custom_response(
-                NO_METHOD, 405
+                NO_METHOD, 200
             )
         elif response.data['status_code'] == 404:
-            return render(None, '404.html', status=404)
+            return custom_response(
+                NOT_FOUND, 200
+            )
         elif 405 < response.data['status_code'] < 500:
             return custom_response(
                 UNKNOWN_ERROR, response.data['status_code']

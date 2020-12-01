@@ -17,15 +17,15 @@ from sys import path
 from kombu import Queue
 
 
-def here(*x):
-    return os.path.join(os.path.abspath(os.path.dirname(__file__)), *x)
+def here(*args):
+    return os.path.join(os.path.abspath(os.path.dirname(__file__)), *args)
 
 
 PROJECT_ROOT = here("..")
 
 
-def root(*x):
-    return os.path.join(os.path.abspath(PROJECT_ROOT), *x)
+def root(*args):
+    return os.path.join(os.path.abspath(PROJECT_ROOT), *args)
 
 
 path.append(root('apps'))
@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     # 'django.contrib.sessions',
     # 'django.contrib.messages',
     # 'django.contrib.staticfiles',
+    'corsheaders'
 ]
 
 CUSTOM_APPS = [
@@ -73,7 +74,8 @@ MIDDLEWARE = [
     # 'django.contrib.auth.middleware.AuthenticationMiddleware',
     # 'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'blog.middleware.PreventMiddleware'
+    'blog.middleware.PreventMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
 ]
 
 ROOT_URLCONF = 'djangoProject.urls'
@@ -294,3 +296,12 @@ CELERY_QUEUES = {
 ASGI_APPLICATION = 'djangoProject.routing.application'
 
 CONN_MAX_AGE = 600
+
+CORS_ORIGIN_ALLOW_ALL = True  # If this is used then `CORS_ORIGIN_WHITELIST` will not have any effect
+CORS_ALLOW_CREDENTIALS = True
+CORS_ORIGIN_WHITELIST = [
+    'http://localhost:4999',
+]  # If this is used, then not need to use `CORS_ORIGIN_ALLOW_ALL = True`
+CORS_ORIGIN_REGEX_WHITELIST = [
+    'http://localhost:4999',
+]
