@@ -1,6 +1,4 @@
 from __future__ import absolute_import, unicode_literals
-
-from celery import shared_task
 from celery.schedules import crontab
 from django.db.models import Q
 from rest_framework import serializers
@@ -146,13 +144,11 @@ def set_attached_picture(images, attached_table, attached_id):
                 new_instance
             )
             model.objects.bulk_update(
-                old_instance,  fields=['image']
+                old_instance, fields=['image']
             )
 
 
-@shared_task(
-    run_every=(crontab(minute=0, hour=8)), ignore_result=True, name='blog_daily.morning_message'
-)
+@current_app.task(name='blog_daily.morning_message')
 def morning_message():
     robot_send_alert(
         title="早安",
@@ -160,11 +156,23 @@ def morning_message():
     )
 
 
-@shared_task(
-    run_every=(crontab(minute=0, hour=23)), ignore_result=True, name='blog_daily.night_message'
-)
+@current_app.task(name='blog_daily.night_message')
 def night_message():
     robot_send_alert(
         title="晚安",
         content="晚安，打工人！",
+    )
+
+
+@current_app.on_after_configure.connect
+def setup_periodic_tasks(sender, **kwargs):
+    sender.add_periodic_task(
+        crontab(minute=0, hour=8),
+        morning_message(),
+    )
+
+    # Executes every Monday morning at 7:30 a.m.
+    sender.add_periodic_task(
+        crontab(minute=9, hour=23),
+        night_message(),
     )
