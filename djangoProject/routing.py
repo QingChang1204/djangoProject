@@ -4,9 +4,7 @@ from channels.db import database_sync_to_async
 from django.contrib.auth.models import AnonymousUser
 from django.db import close_old_connections
 from django.urls import path
-from django.contrib.auth import get_user_model
 from channels.routing import ProtocolTypeRouter, URLRouter
-
 from blog.consumers import NotificationConsumer
 from blog.models import WebSocketTicket
 
