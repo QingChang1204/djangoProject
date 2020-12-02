@@ -2,6 +2,7 @@ from urllib.parse import parse_qs
 from channels.auth import AuthMiddlewareStack
 from channels.db import database_sync_to_async
 from django.contrib.auth.models import AnonymousUser
+from django.core.asgi import get_asgi_application
 from django.db import close_old_connections
 from django.urls import path
 from channels.routing import ProtocolTypeRouter, URLRouter
@@ -42,8 +43,7 @@ class JWTAuthMiddleWareInstance:
     async def __call__(self, receive, send):
         close_old_connections()
         self.scope['user'] = await get_user_from_scope(self.scope)
-        inner = self.inner(self.scope)
-        return await inner(receive, send)
+        return await self.inner(self.scope, receive, send)
 
 
 JWTAuthStack = lambda inner: JWTAuthMiddleWare(
@@ -53,12 +53,13 @@ JWTAuthStack = lambda inner: JWTAuthMiddleWare(
 websockets = URLRouter([
     path(
         "ws/notifications/",
-        NotificationConsumer,
+        NotificationConsumer.as_asgi(),
         name="ws_notifications",
     )
 ])
 
 application = ProtocolTypeRouter({
+    "http": get_asgi_application(),
     "websocket": JWTAuthStack(
         websockets
     )
