@@ -172,7 +172,7 @@ class ArticleMeta:
     fields = [
         'user_info', 'id', 'title', 'category_name', 'attached_pictures', 'datetime_created',
         'publish_status', 'content',
-        'tag', 'datetime_update', 'user_id',
+        'tag', 'datetime_update', 'user_id', 'info'
     ]
     read_only_fields = ['datetime_created', 'datetime_update', 'id', 'user_id']
     extra_kwargs = {'publish_status': {'write_only': True}}
@@ -308,7 +308,7 @@ class CommonArticleSerializer(ArticleSerializers):
         fields = [
             'user_info', 'id', 'title', 'category_name', 'attached_pictures', 'datetime_created',
             'publish_status', 'content',
-            'tag', 'datetime_update', 'user_id',
+            'tag', 'datetime_update', 'user_id', 'info'
         ]
 
 

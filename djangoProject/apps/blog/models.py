@@ -64,17 +64,17 @@ class User(AbstractUser):
         null=True
     )
     icon = models.URLField(
-        verbose_name="用户头像",
+        help_text="用户头像",
         null=True
     )
     phone = models.CharField(
-        verbose_name="手机号",
+        help_text="手机号",
         null=True,
         unique=True,
         max_length=11
     )
     datetime_noticed = models.DateTimeField(
-        verbose_name="通知时间",
+        help_text="通知时间",
         null=True
     )
 
@@ -124,11 +124,11 @@ class Activity(models.Model):
 
 class Category(models.Model):
     category = models.CharField(
-        verbose_name="目录",
+        help_text="目录",
         max_length=100
     )
     datetime_created = models.DateTimeField(
-        verbose_name="创建时间",
+        help_text="创建时间",
         auto_now_add=True
     )
 
@@ -154,10 +154,10 @@ class Article(models.Model):
         related_query_name='article'
     )
     content = models.TextField(
-        verbose_name="内容"
+        help_text="内容"
     )
     title = models.CharField(
-        verbose_name="文章标题",
+        help_text="文章标题",
         max_length=150
     )
     tag = models.ManyToManyField(
@@ -165,19 +165,23 @@ class Article(models.Model):
         through="TagShip"
     )
     publish_status = models.BooleanField(
-        verbose_name="发布状态",
+        help_text="发布状态",
         default=False,
         db_index=True
     )
     datetime_created = models.DateTimeField(
-        verbose_name="创建时间",
+        help_text="创建时间",
         auto_now_add=True
     )
     datetime_update = models.DateTimeField(
-        verbose_name="修改时间",
+        help_text="修改时间",
         auto_now=True
     )
     activities = GenericRelation(Activity, related_query_name="article")
+    info = models.JSONField(
+        help_text="额外信息",
+        null=True
+    )
 
     def __str__(self):
         return self.title
@@ -230,7 +234,7 @@ class ImageManager(models.Manager):
 
 class AttachedPicture(models.Model):
     image = models.URLField(
-        verbose_name="文章图片"
+        help_text="文章图片"
     )
     status = models.BooleanField(
         default=True,
@@ -270,11 +274,11 @@ class Comment(models.Model):
         related_query_name='comment'
     )
     content = models.CharField(
-        verbose_name="评论内容",
+        help_text="评论内容",
         max_length=100
     )
     datetime_created = models.DateTimeField(
-        verbose_name="创建时间",
+        help_text="创建时间",
         auto_now_add=True
     )
     activities = GenericRelation(Activity, related_query_name="comment")
@@ -314,11 +318,11 @@ class Reply(models.Model):
         related_query_name="to_reply"
     )
     content = models.CharField(
-        verbose_name="回复内容",
+        help_text="回复内容",
         max_length=200
     )
     datetime_created = models.DateTimeField(
-        verbose_name="创建时间",
+        help_text="创建时间",
         auto_now_add=True
     )
     objects = ReplyManager()
@@ -327,15 +331,15 @@ class Reply(models.Model):
 class VerifyCode(models.Model):
     phone = models.CharField(
         max_length=11,
-        verbose_name="手机号"
+        help_text="手机号"
     )
     code = models.CharField(
         max_length=6,
-        verbose_name="验证码",
+        help_text="验证码",
         null=True
     )
     datetime_sent = models.DateTimeField(
-        verbose_name="发送时间",
+        help_text="发送时间",
         null=True
     )
 
@@ -370,7 +374,7 @@ class ReceiveMessage(models.Model):
         related_query_name="send_message"
     )
     datetime_send = models.DateTimeField(
-        verbose_name="发送时间",
+        help_text="发送时间",
         auto_now_add=True
     )
 
